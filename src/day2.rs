@@ -52,10 +52,7 @@ fn main() {
 
     let mut sum: i32 = 0;
     for (n, game) in games.iter().enumerate() {
-        println!("{:?}", game);
-        if game.is_possible(12, 13, 14) {
-            sum += (n as i32)+1;
-        }
+        sum += game.red * game.green * game.blue;
     }
 
     println!("sum: {}", sum);
