@@ -31,7 +31,7 @@ fn main() {
     let num_cards = data.lines().count();
     let mut card_counts = vec![1; num_cards];
 
-    let mut seeds: Vec<i64> = vec![];
+    let mut seeds: Vec<(i64, i64)> = vec![];
     let mut dict: HashMap<String, Vec<Item>> = HashMap::new();
 
     let mut map_name = String::new();
@@ -39,7 +39,19 @@ fn main() {
 
     for line in data.lines() {
         if line.starts_with("seeds: ") {
-            seeds = line[7..].split_whitespace().map(|s| s.parse::<i64>().unwrap()).collect::<Vec<_>>();
+            // collect into a vector of pairs of tuples
+            let mut iter = line[7..]
+                .split_whitespace()
+                .map(|s| s.parse::<i64>().unwrap());
+            loop {
+                if let Some(a) = iter.next() {
+                    let b = iter.next().unwrap();
+                    seeds.push((a, b));
+                } else {
+                    break;
+                }
+            }
+
             continue;
         }
 
@@ -81,7 +93,8 @@ fn main() {
 
     let mut result: i64 = i64::MAX;
 
-    for seed in seeds {
+    for seedpair in seeds {
+        for seed in seedpair.0..seedpair.0+seedpair.1 {
         let mut cur: i64 = seed;
         let mut next: Option<i64> = None;
 
@@ -102,6 +115,7 @@ fn main() {
 
         //println!("seed: {}, result: {}", seed, cur);
         result = min(result, cur);
+    }
     }
 
     println!("result: {}", result);
