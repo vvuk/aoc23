@@ -8,16 +8,43 @@ struct Item {
     length: i64,
 }
 
+#[derive(Debug)]
+enum Mapped {
+    None,
+    Full((i64, i64)),
+    Partial((i64, i64), (i64, i64)),
+}
+
 impl Item {
     fn new(start_in: i64, start_out: i64, length: i64) -> Item {
         Item { start_in, start_out, length }
     }
+    fn map_d(&self, item: (i64, i64)) -> Mapped {
+        let r = self.map(item);
+        //println!("map {:?} @ {:?} = {:?}", item, self, r);
+        r
+    }
 
-    fn map(&self, item: i64) -> Option<i64> {
-        if item >= self.start_in && item < self.start_in + self.length {
-            Some(self.start_out + item - self.start_in)
+    fn map(&self, item: (i64, i64)) -> Mapped {
+        let sin = self.start_in;
+        let sout = self.start_out;
+        let slen = self.length;
+
+        let rin = item.0;
+        let rlen = item.1;
+
+        // if rin is inside this mapping
+        if rin >= sin && rin < sin + slen {
+            // does the full mapping apply? if so return a Full mapping.
+            // otherwise, map up to the length, and return the remainder
+            if rin + rlen <= sin + slen {
+                Mapped::Full((sout + (rin - sin), rlen))
+            } else {
+                let num_mapped = (sin+slen) - rin;
+                Mapped::Partial((sout + (rin - sin), num_mapped), (rin + num_mapped, rlen - num_mapped))
+            }
         } else {
-            None
+            Mapped::None
         }
     }
 }
@@ -93,30 +120,44 @@ fn main() {
 
     let mut result: i64 = i64::MAX;
 
-    for seedpair in seeds {
-        for seed in seedpair.0..seedpair.0+seedpair.1 {
-        let mut cur: i64 = seed;
-        let mut next: Option<i64> = None;
+    // sigh. we have to do it by intervals
+        let mut cur_all: Vec<(i64, i64)> = seeds.clone();
 
-        for map in &maps_in_order {
-            next = None;
+        for (i, map) in maps_in_order.iter().enumerate() {
+            //println!("============= Map {} =============", i);
+            let mut next_all: Vec<(i64, i64)> = vec![];
+            for cur in cur_all {
+                let mut cur_work = Some(cur);
+                for map_item in *map {
+                    if cur_work.is_none() {
+                        break;
+                    }
 
-            //println!("{:?}", map);
-            for item in *map {
-                if let Some(mapped) = item.map(cur) {
-                    next = Some(mapped);
-                    break;
+                    match map_item.map(cur_work.unwrap()) {
+                        Mapped::None => (),
+                        Mapped::Full((start, len)) => {
+                            next_all.push((start, len));
+                            cur_work = None;
+                        },
+                        Mapped::Partial((start, len), (start2, len2)) => {
+                            next_all.push((start, len));
+                            cur_work = Some((start2, len2));
+                        },
+                    }
+                }
+                if let Some(left) = cur_work {
+                    next_all.push(left);
                 }
             }
-            //println!("   cur: {} -> next: {:?}", cur, next);
 
-            cur = next.unwrap_or(cur);
+            next_all.sort_by(|a: &(i64, i64), b: &(i64, i64)| a.0.cmp(&b.0));
+            cur_all = next_all;
         }
 
+        result = cur_all[0].0;
+
         //println!("seed: {}, result: {}", seed, cur);
-        result = min(result, cur);
-    }
-    }
+        //result = min(result, cur);
 
     println!("result: {}", result);
 }
