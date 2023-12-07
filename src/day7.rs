@@ -6,19 +6,19 @@ use itertools::Itertools;
 #[repr(u8)]
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Hash, Copy, Clone)]
 enum Card {
-    A,
-    K,
-    Q,
-    T,
-    Nine,
-    Eight,
-    Seven,
-    Six,
-    Five,
-    Four,
-    Three,
-    Two,
     J,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    T,
+    Q,
+    K,
+    A,
 }
 
 fn parse_card(card: char) -> Card {
@@ -42,13 +42,13 @@ fn parse_card(card: char) -> Card {
 
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Copy, Clone)]
 enum HandType {
-    FiveOfAKind,
-    FourOfAKind,
-    FullHouse,
-    ThreeOfAKind,
-    TwoPair,
-    OnePair,
     HighCard,
+    OnePair,
+    TwoPair,
+    ThreeOfAKind,
+    FullHouse,
+    FourOfAKind,
+    FiveOfAKind,
 }
 
 impl HandType {
@@ -66,7 +66,7 @@ impl HandType {
             if a.1 == b.1 {
                 return a.0.cmp(&b.0);
             }
-            return b.1.cmp(&a.1);
+            return a.1.cmp(&b.1);
         });
 
         //println!("hand {:?} counts: {:?} jokers: {}", hand, counts, num_jokers);
@@ -162,26 +162,22 @@ fn main() {
         let a_type = HandType::from_hand(&a.0);
         let b_type = HandType::from_hand(&b.0);
 
+        let ah = &a.0;
+        let bh = &b.0;
         //println!("a: {:?} -> {:?}", a.0, a_type);
         //println!("b: {:?} -> {:?}", b.0, b_type);
 
         if a_type == b_type {
-            let mut ah = a.0.clone();
-            let mut bh = b.0.clone();
-
-            //println!("a: {:?} -> {:?}", a.0, ah);
-            //println!("b: {:?} -> {:?}", b.0, bh);
-
             for i in 0..ah.len() {
                 if ah[i] != bh[i] {
                     return ah[i].cmp(&bh[i]);
                 }
             }
 
-            return 0.cmp(&0);
-        } else {
-            return a_type.cmp(&b_type);
+            panic!("No ordering found for hands: {:?} {:?}", a, b);
         }
+
+        return a_type.cmp(&b_type);
     });
 
     let mut rank = hands.len() as i64;
