@@ -10,36 +10,31 @@ fn dist_for_time(button_press_time: i64, total_time: i64) -> i64
 fn main() {
     let data = include_str!("../inputs/day6.txt");
 
-    let mut times: Vec<i64> = Vec::new();
-    let mut distances: Vec<i64> = Vec::new();
+    let mut time: i64 = 0;
+    let mut distance: i64 = 0;
 
     for line in data.lines() {
         if line.starts_with("Time: ") {
-            line.trim().split_whitespace().skip(1).for_each(|s| times.push(s.parse::<i64>().unwrap()));
+            time = line[6..].replace(" ", "").parse::<i64>().unwrap();
         } else if line.starts_with("Distance: ") {
-            line.trim().split_whitespace().skip(1).for_each(|s| distances.push(s.parse::<i64>().unwrap()));
+            distance = line[10..].replace(" ", "").parse::<i64>().unwrap();
         }
     }
 
-    println!("times: {:?}", times);
-    println!("distances: {:?}", distances);
+    println!("time: {:?}", time);
+    println!("distance: {:?}", distance);
 
     let mut result: i64 = 1;
-    for i in 0..times.len() {
-        let time = times[i];
-        let dist = distances[i];
-
-        let mut num_ways_to_win = 0;
-        for k in 1..time {
-            let d = dist_for_time(k, time);
-            if d > dist {
-                num_ways_to_win += 1;
-            }
+    let mut num_ways_to_win = 0;
+    for k in 1..time {
+        let d = dist_for_time(k, time);
+        if d > distance {
+            num_ways_to_win += 1;
         }
+    }
 
-        if num_ways_to_win > 0 {
-            result *= num_ways_to_win;
-        }
+    if num_ways_to_win > 0 {
+        result *= num_ways_to_win;
     }
 
     println!("result: {}", result);
