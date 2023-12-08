@@ -21,22 +21,65 @@ enum Card {
     A,
 }
 
-fn parse_card(card: char) -> Card {
-    match card {
-        'A' => Card::A,
-        'K' => Card::K,
-        'Q' => Card::Q,
-        'J' => Card::J,
-        'T' => Card::T,
-        '9' => Card::Nine,
-        '8' => Card::Eight,
-        '7' => Card::Seven,
-        '6' => Card::Six,
-        '5' => Card::Five,
-        '4' => Card::Four,
-        '3' => Card::Three,
-        '2' => Card::Two,
-        _ => panic!("unknown card: {}", card),
+impl Card {
+    fn num_cards() -> usize {
+        13
+    }
+
+    fn to_index(card: Card) -> usize {
+        match card {
+            Card::J => 0,
+            Card::Two => 1,
+            Card::Three => 2,
+            Card::Four => 3,
+            Card::Five => 4,
+            Card::Six => 5,
+            Card::Seven => 6,
+            Card::Eight => 7,
+            Card::Nine => 8,
+            Card::T => 9,
+            Card::Q => 10,
+            Card::K => 11,
+            Card::A => 12,
+        }
+    }
+
+    fn from_index(idx: usize) -> Card {
+        match idx {
+            0 => Card::J,
+            1 => Card::Two,
+            2 => Card::Three,
+            3 => Card::Four,
+            4 => Card::Five,
+            5 => Card::Six,
+            6 => Card::Seven,
+            7 => Card::Eight,
+            8 => Card::Nine,
+            9 => Card::T,
+            10 => Card::Q,
+            11 => Card::K,
+            12 => Card::A,
+            _ => panic!("unknown index: {}", idx),
+        }
+    }
+
+    fn from_char(card: char) -> Card {
+        match card {
+            'A' => Card::A,
+            'K' => Card::K,
+            'Q' => Card::Q,
+            'J' => Card::J,
+            'T' => Card::T,
+            '9' => Card::Nine,
+            '8' => Card::Eight,
+            '7' => Card::Seven,
+            '6' => Card::Six,
+            '5' => Card::Five,
+            '4' => Card::Four,
+            '3' => Card::Three,
+            '2' => Card::Two,
+            _ => panic!("unknown card: {}", card),
+        }
     }
 }
 
@@ -59,79 +102,43 @@ impl HandType {
             *count += 1;
         }
 
-        let mut num_jokers = *counts.get(&Card::J).unwrap_or(&0);
-
+        let num_jokers = *counts.get(&Card::J).unwrap_or(&0);
         let mut counts: Vec<(Card, i64)> = counts.into_iter().collect();
         counts.sort_by(|a: &(Card, i64), b: &(Card, i64)| {
             if a.1 == b.1 {
-                return a.0.cmp(&b.0);
+                return b.0.cmp(&a.0);
             }
-            return a.1.cmp(&b.1);
+            return b.1.cmp(&a.1);
         });
 
-        //println!("hand {:?} counts: {:?} jokers: {}", hand, counts, num_jokers);
-        let mut hand_type = HandType::HighCard;
-        for (card, count) in counts {
-            if card == Card::J {
-                let mut joker_type: HandType;
-                if num_jokers == 5 || num_jokers == 4{
-                    joker_type = HandType::FiveOfAKind;
-                } else if num_jokers == 3 {
-                    joker_type = HandType::FourOfAKind;
-                } else if num_jokers == 2 {
-                    joker_type = HandType::ThreeOfAKind;
-                } else {
-                    break;
-                }
-
-                //println!("joker_type: {:?} hand_type {:?}", joker_type, hand_type);
-
-                if joker_type < hand_type {
-                    hand_type = joker_type;
-                }
-                break;
+        if num_jokers > 0 {
+            let mut joker_results: Vec<HandType> = vec![];
+            let first_joker_at = hand.iter().position(|&c| c == Card::J).unwrap();
+            for i in 1..Card::num_cards() {
+                let mut hand_copy = hand.clone();
+                hand_copy[first_joker_at] = Card::from_index(i);
+                joker_results.push(HandType::from_hand(&hand_copy));
             }
 
+            return *joker_results.iter().max().unwrap();
+        }
+
+        let mut hand_type = HandType::HighCard;
+        for (card, count) in counts {
             if count == 5 {
                 hand_type = HandType::FiveOfAKind;
+                break;
             } else if count == 4 {
-                if num_jokers == 1 {
-                    hand_type = min(hand_type, HandType::FiveOfAKind);
-                    num_jokers -= 1;
-                } else {
-                    hand_type = min(hand_type, HandType::FourOfAKind);
-                }
+                hand_type = max(hand_type, HandType::FourOfAKind);
             } else if count == 3 {
-                if num_jokers == 2 {
-                    hand_type = min(hand_type, HandType::FiveOfAKind);
-                    num_jokers -= 2;
-                } else if num_jokers == 1 {
-                    hand_type = min(hand_type, HandType::FourOfAKind);
-                    //println!("hand {:?} jokers: {} 4 of a kind", hand, num_jokers);
-                    num_jokers -= 1;
-                } else {
-                    hand_type = min(hand_type, HandType::ThreeOfAKind);
-                }
+                hand_type = max(hand_type, HandType::ThreeOfAKind);
             } else if count == 2 {
                 if hand_type == HandType::ThreeOfAKind {
-                    hand_type = min(hand_type, HandType::FullHouse);
-                } else if num_jokers == 3 {
-                    hand_type = min(hand_type, HandType::FiveOfAKind);
-                    num_jokers -= 3;
-                } else if num_jokers == 2 {
-                    hand_type = min(hand_type, HandType::FourOfAKind);
-                    num_jokers -= 2;
-                } else if num_jokers == 1 {
-                    if hand_type == HandType::OnePair {
-                        hand_type = min(hand_type, HandType::FullHouse);
-                    } else {
-                        hand_type = min(hand_type, HandType::ThreeOfAKind);
-                    }
-                    num_jokers -= 1;
+                    hand_type = max(hand_type, HandType::FullHouse);
                 } else if hand_type == HandType::OnePair {
-                    hand_type = min(hand_type, HandType::TwoPair);
+                    hand_type = max(hand_type, HandType::TwoPair);
                 } else {
-                    hand_type = min(hand_type, HandType::OnePair);
+                    hand_type = max(hand_type, HandType::OnePair);
                 }
             }
         }
@@ -145,22 +152,23 @@ type Hand = Vec<Card>;
 fn main() {
     let data = include_str!("../inputs/day7.txt");
 
-    let mut hands: Vec<(Hand, i64)> = Vec::new();
+    let mut hands: Vec<(Hand, i64, HandType)> = Vec::new();
 
     for line in data.lines() {
         let split = line.trim().split_whitespace().collect_vec();
         let mut hand: Vec<Card> = Vec::new();
 
-        split[0].chars().for_each(|c| hand.push(parse_card(c)));
+        split[0].chars().for_each(|c| hand.push(Card::from_char(c)));
 
         let bid = split[1].parse::<i64>().unwrap();
 
-        hands.push((hand, bid));
+        let hand_type = HandType::from_hand(&hand);
+        hands.push((hand, bid, hand_type));
     }
 
-    hands.sort_by(|a: &(Hand, i64), b: &(Hand, i64)| {
-        let a_type = HandType::from_hand(&a.0);
-        let b_type = HandType::from_hand(&b.0);
+    hands.sort_by(|a: &(Hand, i64, HandType), b: &(Hand, i64, HandType)| {
+        let a_type = a.2;
+        let b_type = b.2;
 
         let ah = &a.0;
         let bh = &b.0;
@@ -170,21 +178,21 @@ fn main() {
         if a_type == b_type {
             for i in 0..ah.len() {
                 if ah[i] != bh[i] {
-                    return ah[i].cmp(&bh[i]);
+                    return bh[i].cmp(&ah[i]);
                 }
             }
 
             panic!("No ordering found for hands: {:?} {:?}", a, b);
         }
 
-        return a_type.cmp(&b_type);
+        return b_type.cmp(&a_type);
     });
 
     let mut rank = hands.len() as i64;
     let mut result: i64 = 0;
 
     for hand in hands {
-        println!("hand: {:?} -> {:?}, bid: {}", hand.0, HandType::from_hand(&hand.0), hand.1);
+        println!("hand: {:?} -> {:?}, bid: {}", hand.0, hand.2, hand.1);
         result += hand.1 * rank;
         rank -= 1;
     }
