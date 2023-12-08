@@ -1,5 +1,5 @@
 #![allow(unused_imports, unused_variables, dead_code)]
-use std::{cmp::{min,max}, collections::HashMap, str::FromStr};
+use std::{cmp::{min,max}, collections::HashMap, collections::HashSet, str::FromStr};
 use itertools::Itertools;
 use regex::Regex;
 
@@ -33,6 +33,10 @@ impl Item {
             Direction::Right => self.right,
         }
     }
+}
+
+fn get_factors_functional(n: u64) -> Vec<u64> {
+    (1..n + 1).into_iter().filter(|&x| n % x == 0).collect::<Vec<u64>>()
 }
 
 fn main() {
@@ -81,30 +85,32 @@ fn main() {
         items[code] = Some(item);
     }
 
-    let mut result: i64 = 0;
-    let mut dir_idx = 0;
-    let plen = path.len();
-    loop {
-        //if result % 100000 == 0 {
-            //println!("{}: {:?}", result, path);
-       // }
-        let dir = dr[dir_idx];
-
-        let mut is_end = true;
-        for i in 0..plen {
-            let item = items[path[i]].as_ref().unwrap();
-            is_end = is_end && item.is_end;
-            path[i] = item.go(dir);
+    let mut path_factors: HashSet<u64> = HashSet::new();
+    let mut result: u64 = 1;
+    for start in path.iter() {
+        let mut p = *start;
+        let mut dir_idx = 0;
+        let mut count = 0;
+        loop {
+            let dir = dr[dir_idx];
+            let item = items[p].as_ref().unwrap();
+            if item.is_end {
+                break;
+            }
+            p = item.go(dir);
+            count += 1;
+            dir_idx = (dir_idx + 1) % dr.len();
         }
-
-        if is_end {
-            break;
+        println!("count: {} -> {:?}", count, get_factors_functional(count as u64));
+        for k in get_factors_functional(count as u64) {
+            if k != count {
+                path_factors.insert(k);
+            }
         }
-
-        result += 1;
-        dir_idx = (dir_idx + 1) % dr.len();
     }
 
+    result = path_factors.iter().product();
+    println!("couts: {:?}", path_factors);
     println!("result: {}", result);
 }
 
