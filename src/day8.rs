@@ -38,10 +38,12 @@ impl Item {
 fn main() {
     let data = include_str!("../inputs/day8.txt");
 
-    let mut items: HashMap<String, Item> = HashMap::new();
+    let mut items_array: Vec<Item> = Vec::new();
+    let mut items: HashMap<&str, &Item> = HashMap::new();
     let mut lines = data.lines();
     let dr = lines.next().unwrap().chars().map(|c| Direction::from_char(c)).collect_vec();
     _ = lines.next();
+    let mut path: Vec<&str> = Vec::new();
 
     for line in lines {
         // syntax is "AAA = (BBB, CCC)", parse into Item
@@ -53,19 +55,40 @@ fn main() {
             right: caps[3].to_string(),
         };
 
-        items.insert(item.code.clone(), item);
+        items_array.push(item);
     }
 
-    let mut cur = "AAA";
+    for item in &items_array {
+        if item.code.chars().last().unwrap() == 'A' {
+            path.push(&item.code);
+        }
+
+        items.insert(&item.code, item);
+    }
+
     let mut result: i64 = 0;
     let mut dir_idx = 0;
-    while cur != "ZZZ" {
-        let item = &items[&cur.to_string()];
+    let plen = path.len();
+    'OUTER: loop {
+        if result % 100000 == 0 {
+            println!("{}: {:?}", result, path);
+        }
         let dir = dr[dir_idx];
 
-        cur = item.go(dir);
+        for i in 0..plen {
+            let item = items[&path[i]];
+            path[i] = item.go(dir);
+        }
+
         result += 1;
         dir_idx = (dir_idx + 1) % dr.len();
+
+        for p in &path {
+            if !p.ends_with('Z') {
+                continue 'OUTER;
+            }
+        }
+        break
     }
 
     println!("result: {}", result);
