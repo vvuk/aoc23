@@ -32,7 +32,7 @@ fn main() {
 
         let mut item: i64 = 0;
         for q in sequence.iter().rev().skip(1) {
-            item += q.last().unwrap();
+            item = q.first().unwrap() - item;
         }
         //println!("{}", item);
         result += item;
