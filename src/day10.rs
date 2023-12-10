@@ -60,6 +60,20 @@ impl MapTile {
     }
 }
 
+impl std::convert::TryFrom<i64> for MapTile {
+    type Error = ();
+
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
+        if MapTile::NorthAndSouth as i64 == value { return Ok(MapTile::NorthAndSouth); }
+        if MapTile::EastAndWest as i64 == value { return Ok(MapTile::EastAndWest); }
+        if MapTile::EastAndSouth as i64 == value { return Ok(MapTile::EastAndSouth); }
+        if MapTile::EastAndNorth as i64 == value { return Ok(MapTile::EastAndNorth); }
+        if MapTile::WestAndSouth as i64 == value { return Ok(MapTile::WestAndSouth); }
+        if MapTile::WestAndNorth as i64 == value { return Ok(MapTile::WestAndNorth); }
+        Err(())
+    }
+}
+
 impl BitAnd<Direction> for MapTile {
     type Output = bool;
 
@@ -105,12 +119,38 @@ impl Map {
             map.push(row);
         }
 
-        Map {
-            width: map[0].len(),
-            height: map.len(),
-            map: map,
-            start: start,
+        // fix the start character
+        let start_tile = map[start.1][start.0];
+        let dirmap: Vec<((i64, i64), Direction)> = vec![
+            ((-1, 0), Direction::East),
+            ((0, -1), Direction::South),
+            ((1, 0), Direction::West),
+            ((0, 1), Direction::North),
+        ];
+
+        let width = map[0].len();
+        let height = map.len();
+
+        let mut startchar: i64 = 0;
+        for (offs, dir) in dirmap {
+            if start.0 == 0 && offs.0 < 0 { continue; }
+            if start.1 == 0 && offs.1 < 0 { continue; }
+            if start.0 == width-1 && offs.0 > 0 { continue; }
+            if start.1 == height-1 && offs.1 > 0 { continue; }
+
+            let checkloc = (((start.0 as i64)+offs.0) as usize, ((start.1 as i64)+offs.1) as usize);
+            let loc = map[checkloc.1][checkloc.0];
+            println!("{:?} -> {:?} (the dir: {:?})", checkloc, loc, dir);
+            if loc & dir {
+                startchar |= dir.flip() as i64;
+            }
         }
+
+        let starttile = MapTile::try_from(startchar).unwrap();
+        println!("st: {:?}", starttile);
+
+        map[start.1][start.0] = starttile; 
+        Map { width, height, map, start }
     }
 
     fn get(&self, loc: Coord) -> MapTile {
@@ -137,7 +177,7 @@ impl Map {
 
             let checkloc = (((sx as i64)+offs.0) as usize, ((sy as i64)+offs.1) as usize);
             let loc = self.get(checkloc);
-            println!("{:?} -> {:?} (the dir: {:?})", checkloc, loc, dir);
+            //println!("{:?} -> {:?} (the dir: {:?})", checkloc, loc, dir);
             if loc & dir {
                 return dir.flip()
             }
@@ -169,6 +209,15 @@ impl Map {
     }
 }
 
+fn print_map(map: &Vec<Vec<char>>) {
+    for row in map {
+        for c in row {
+            print!("{}", c);
+        }
+        println!("");
+    }
+}
+
 fn main() {
     let data = include_str!("../inputs/day10.txt");
 
@@ -176,10 +225,15 @@ fn main() {
     let mut dir = map.pick_start_dir();
     let mut loc  = map.go(map.start, dir);
 
+    let mut wallmap: Vec<Vec<char>> = vec![vec!['.'; map.width]; map.height];
+
+    wallmap[map.start.1][map.start.0] = '#';
+
     println!("start: {:?}", map.start);
 
     let mut result: i64 = 0;
     while loc != map.start {
+        wallmap[loc.1][loc.0] = '#';
         // we just went "dir" to get to loc
         let tile = map.get(loc);
         //println!("loc: {:?} from {:?}, tile: {:?}", loc, dir, tile);
@@ -189,4 +243,63 @@ fn main() {
     }
 
     println!("Result: {} -> {}", result, (result as f64 / 2.0).round());
+
+    let mut ymap: Vec<Vec<char>> = vec![vec!['.'; map.width]; map.height];
+    let mut xmap: Vec<Vec<char>> = vec![vec!['.'; map.width]; map.height];
+
+    let mut enclosed: i64 = 0;
+
+    for y in 0..map.height {
+        let mut inside_n: bool = false;
+        let mut inside_s: bool = false;
+        for x in 0..map.width {
+            let wall = wallmap[y][x] == '#';
+            if wall {
+                let tile = map.get((x, y));
+                if tile & Direction::North {
+                    ymap[y][x] = '|';
+                    inside_n = !inside_n;
+                }
+                if tile & Direction::South {
+                    ymap[y][x] = '|';
+                    inside_s = !inside_s;
+                }
+            } else if inside_n || inside_s {
+                ymap[y][x] = 'X';
+            }
+        }
+    }
+    print_map(&wallmap);
+    println!("");
+
+    for x in 0..map.width {
+        let mut inside_e: bool = false;
+        let mut inside_w: bool = false;
+        for y in 0..map.height {
+            let wall = wallmap[y][x] == '#';
+            if wall {
+                let tile = map.get((x, y));
+                if tile & Direction::East {
+                    xmap[y][x] = '-';
+                    inside_e = !inside_e;
+                }
+                if tile & Direction::West {
+                    xmap[y][x] = '-';
+                    inside_w = !inside_w;
+                }
+            } else if inside_e || inside_w {
+                xmap[y][x] = 'Y';
+                if ymap[y][x] == 'X' {
+                    ymap[y][x] = '$';
+                    enclosed += 1;
+                }
+            }
+        }
+    }
+
+    print_map(&ymap);
+    println!("");
+    print_map(&xmap);
+
+    println!("Enclosed: {}", enclosed);
 }
