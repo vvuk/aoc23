@@ -1,0 +1,95 @@
+fn bresenham(start: Coord, end: Coord) -> Vec<Coord> {
+    fn low(x0: i64, y0: i64, x1: i64, y1: i64) -> Vec<Coord> {
+        let dx = x1 - x0;
+        let (dy, yi) =
+            if y1 >= y0 {
+                (y1 - y0, 1)
+            } else {
+                (y0 - y1, -1)
+            };
+
+        let mut D = (2 * dy) - dx;
+        let mut y = y0;
+        let mut result = Vec::new();
+        for x in x0..x1+1 {
+            result.push((x as usize, y as usize));
+            if D > 0 {
+                y = y + yi;
+                D = D + (2 * (dy - dx));
+            } else {
+                D = D + 2*dy;
+            }
+        }
+        result
+    }
+
+    fn high(x0: i64, y0: i64, x1: i64, y1: i64) -> Vec<Coord> {
+        let dy = y1 - y0;
+        let (dx, xi) =
+            if x1 >= x0 {
+                (x1 - x0, 1)
+            } else {
+                (x0 - x1, -1)
+            };
+
+        let mut D = (2 * dx) - dy;
+        let mut x = x0;
+        let mut result = Vec::new();
+        for y in y0..y1+1 {
+            result.push((x as usize, y as usize));
+            if D > 0 {
+                x = x + xi;
+                D = D + (2 * (dx - dy));
+            } else {
+                D = D + 2*dx;
+            }
+        }
+        result
+    }
+
+    let x0 = start.0 as i64;
+    let y0 = start.1 as i64;
+    let x1 = end.0 as i64;
+    let y1 = end.1 as i64;
+
+    if (y1 - y0).abs() < (x1 - x0).abs() {
+        if x0 > x1 { low(x1, y1, x0, y0)
+        } else { low(x0, y0, x1, y1) }
+    } else {
+        if y0 > y1 { high(x1, y1, x0, y0) }
+        else { high(x0, y0, x1, y1) }
+    }
+}
+
+fn bresenham_with_error(start: Coord, end: Coord) -> Vec<Coord> {
+    let mut x0 = start.0 as i64;
+    let mut y0 = start.1 as i64;
+    let x1 = end.0 as i64;
+    let y1 = end.1 as i64;
+
+    let dx = (x1 - x0).abs();
+    let sx = if x0 < x1 { 1 } else { -1 };
+    let dy = -(y1 - y0).abs();
+    let sy = if y0 < y1 { 1 } else { -1 };
+    let mut error = dx + dy;
+   
+    let mut result = Vec::new();
+    loop {
+        result.push((x0 as usize, y0 as usize));
+        if x0 == x1 && y0 == y1 {
+            break;
+        }
+        let e2 = 2 * error;
+        if e2 >= dy {
+            if x0 == x1 { break; }
+            error = error + dy;
+            x0 = x0 + sx;
+        }
+        if e2 <= dx {
+            if y0 == y1 { break; }
+            error = error + dx;
+            y0 = y0 + sy;
+        }
+    }
+    result
+}
