@@ -12,6 +12,17 @@ struct Pattern {
     transposed: Vec<Vec<bool>>,
 }
 
+fn cntdiff(a: &Vec<bool>, b: &Vec<bool>) -> usize {
+    assert_eq!(a.len(), b.len());
+    let mut result = 0;
+    for i in 0..a.len() {
+        if a[i] != b[i] {
+            result += 1;
+        }
+    }
+    result
+}
+
 impl Pattern {
     fn from_normal(normal: Vec<Vec<bool>>) -> Pattern {
         let mut transposed = vec![vec![false; normal.len()]; normal[0].len()];
@@ -45,26 +56,25 @@ impl Pattern {
         println!();
     }
 
-    fn find_vert_reflection_inner(p: &Vec<Vec<bool>>) -> Option<usize> {
+    fn find_vert_reflection_inner(p: &Vec<Vec<bool>>, diffok: usize) -> Option<usize> {
         for i in 1..p.len() {
-            if p[i] == p[i-1] {
+            if cntdiff(&p[i], &p[i-1]) <= diffok {
                 let top_lines = i;
                 let bot_lines = p.len() - i;
 
                 let relevant = min(top_lines, bot_lines);
 
-                println!("Found reflection at {}, top: {} bot: {}, relevant: {}", i, top_lines, bot_lines, relevant);
+                let mut diffs = 0;
 
-                let mut ok = true;
+                println!("Found reflection at {} (diff {}), top: {} bot: {}, relevant: {}", i, cntdiff(&p[i], &p[i-1]), top_lines, bot_lines, relevant);
+
                 for r in 0..relevant {
                     println!("Checking {} {}", i+r, i-r-1);
-                    if p[i+r] != p[i-r-1] {
-                        ok = false;
-                        break;
-                    }
+                    let diff = cntdiff(&p[i+r], &p[i-r-1]);
+                    diffs += diff;
                 }
 
-                if ok {
+                if diffs == diffok {
                     return Some(top_lines);
                 }
             }
@@ -73,12 +83,12 @@ impl Pattern {
         return None
     }
 
-    fn find_reflection(&self) -> Option<usize> {
-        Pattern::find_vert_reflection_inner(&self.normal)
+    fn find_reflection(&self, diffok: usize) -> Option<usize> {
+        Pattern::find_vert_reflection_inner(&self.normal, diffok)
     }
 
-    fn find_transposed_reflection(&self) -> Option<usize> {
-        Pattern::find_vert_reflection_inner(&self.transposed)
+    fn find_transposed_reflection(&self, diffok: usize) -> Option<usize> {
+        Pattern::find_vert_reflection_inner(&self.transposed, diffok)
     }
 }
 
@@ -114,17 +124,37 @@ fn day11_inner(input_fname: &str) -> (usize, Vec<usize>) {
 
     for p in patterns {
         p.print();
-        if let Some(r) = p.find_reflection() {
-            println!("Found reflection (normal): {}", r);
-            rvec.push(r * 100);
-            result += r * 100;
-        } else if let Some(r) = p.find_transposed_reflection() {
-            println!("Found reflection (transposed): {}", r);
-            rvec.push(r);
-            result += r;
-        } else {
-            panic!("No reflection found");
+
+        let q = (
+            p.find_reflection(1),
+            p.find_transposed_reflection(1),
+            p.find_reflection(0),
+            p.find_transposed_reflection(0),
+        );
+
+        let mut qr;
+        match q {
+            (Some(r), _, _, _) => {
+                println!("Found reflection (normal): {}", r);
+                qr = r * 100;
+            },
+            (None, Some(r), _, _) => {
+                println!("Found reflection (transposed): {}", r);
+                qr = r;
+            },
+            (None, None, Some(r), _) => {
+                println!("Found reflection (normal): {}", r);
+                qr = r * 100;
+            },
+            (None, None, None, Some(r)) => {
+                println!("Found reflection (transposed): {}", r);
+                qr = r;
+            },
+            _ => panic!("No reflection found, q: {:?}", q),
         }
+
+        rvec.push(qr);
+        result += qr;
     }
 
     (result, rvec)
