@@ -43,7 +43,13 @@ impl std::fmt::Debug for State {
 }
 
 
-fn num_match(map: &[State], damaged_runs: &[i64], in_dmg_in: bool) -> i64 {
+fn num_match(map: &[State], damaged_runs: &[i64], in_dmg_in: bool, memo: &mut HashMap<String, i64>) -> i64 {
+    let hkey = format!("{} {} {:?}", smap(map), in_dmg_in, damaged_runs);
+    if let Some(x) = memo.get(&hkey) {
+        println!("memo hit: {} => {}", hkey, x);
+        return *x;
+    }
+
     let mut i = 0;
     while i < map.len() && map[i] == State::Working {
         i += 1;
@@ -52,9 +58,12 @@ fn num_match(map: &[State], damaged_runs: &[i64], in_dmg_in: bool) -> i64 {
     let smap = smap(&map[i..]);
     println!("{} checking: {}     {:?}", " ".repeat(unsafe { indent }), smap, damaged_runs);
     unsafe { indent += 1; }
-    let x = nx(&map[i..], damaged_runs, in_dmg_in);
+    let x = nx(&map[i..], damaged_runs, in_dmg_in, memo);
     unsafe { indent -= 1; }
     println!("{} map: {} runs: {:?} => {}", " ".repeat(unsafe { indent }), smap, damaged_runs, x);
+
+    memo.insert(hkey, x);
+
     x
 }
 
@@ -66,7 +75,7 @@ fn smap(map: &[State]) -> String {
     }).collect()
 }
 
-fn nx(map: &[State], damaged_runs: &[i64], in_dmg_in: bool) -> i64 {
+fn nx(map: &[State], damaged_runs: &[i64], in_dmg_in: bool, memo: &mut HashMap<String, i64>) -> i64 {
     if damaged_runs.is_empty() {
         if map.iter().any(|s| *s == State::Damaged) {
             println!("returning 0 because damaged and no runs left");
@@ -96,7 +105,7 @@ fn nx(map: &[State], damaged_runs: &[i64], in_dmg_in: bool) -> i64 {
 
             // we matched a run
             if expected_run == 0 {
-                count += num_match(&map[i+1..], &damaged_runs[1..], false);
+                count += num_match(&map[i+1..], &damaged_runs[1..], false, memo);
                 println!("returning {} because matched a run, so went next", count);
                 return count;
             }
@@ -138,18 +147,18 @@ fn nx(map: &[State], damaged_runs: &[i64], in_dmg_in: bool) -> i64 {
                 // we expect to end a run here, the only valid option is Working,
                 new_map[i] = State::Working;
                 println!("new_map A: {}", smap(&new_map));
-                ca = num_match(&new_map[i..], &damaged_runs[1..], false);
+                ca = num_match(&new_map[i..], &damaged_runs[1..], false, memo);
             } else {
                 // we are not in a dmg, but expected_run > 0.
                 // previous char was a working.
 
                 new_map[i] = State::Working;
                 println!("new_map B1: {}", smap(&new_map));
-                ca = num_match(&new_map[i..], &damaged_runs, false);
+                ca = num_match(&new_map[i..], &damaged_runs, false, memo);
 
                 new_map[i] = State::Damaged;
                 println!("new_map B2: {}", smap(&new_map));
-                cb = num_match(&new_map[i..], &damaged_runs, in_dmg);
+                cb = num_match(&new_map[i..], &damaged_runs, in_dmg, memo);
             }
 
             count += ca + cb;
@@ -273,7 +282,7 @@ fn day12_inner(input_fname: &str) -> (i64, Vec<i64>) {
         println!("");
         println!("");
         println!("====== {}", smap(&map));
-        let line_result = num_match(&map, &damaged_runs, false);
+        let line_result = num_match(&map, &damaged_runs, false, &mut HashMap::new());
         springmap.push(line_result);
 
         result += line_result;
@@ -291,9 +300,9 @@ fn main() {
     println!("{}", is_match(&State::from_str("#####"), &[5]));
     */
 
-    let (r, d) = day12_inner("inputs/day12-sample.txt");
-    println!("{:?}", d);
-    expect_vec(&[1, 16384, 1, 16, 2500, 506250], &d);
+    let (r, d) = day12_inner("inputs/day12.txt");
+    //println!("{:?}", d);
+    //expect_vec(&[1, 16384, 1, 16, 2500, 506250], &d);
     //expect_vec(&[1, 4, 1, 1, 4, 10], &d);
     println!("Result: {}", r);
 
