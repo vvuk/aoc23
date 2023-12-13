@@ -15,6 +15,8 @@ enum State {
     Unknown,
 }
 
+static mut indent: usize = 0;
+
 impl State {
     fn from_str(s: &str) -> Vec<State> {
         s.chars().map(|c| State::from_char(c)).collect_vec()
@@ -40,6 +42,136 @@ impl std::fmt::Debug for State {
     }
 }
 
+
+fn num_match(map: &[State], damaged_runs: &[i64], in_dmg_in: bool) -> i64 {
+    let mut i = 0;
+    while i < map.len() && map[i] == State::Working {
+        i += 1;
+    }
+
+    let smap = smap(&map[i..]);
+    println!("{} checking: {}     {:?}", " ".repeat(unsafe { indent }), smap, damaged_runs);
+    unsafe { indent += 1; }
+    let x = nx(&map[i..], damaged_runs, in_dmg_in);
+    unsafe { indent -= 1; }
+    println!("{} map: {} runs: {:?} => {}", " ".repeat(unsafe { indent }), smap, damaged_runs, x);
+    x
+}
+
+fn smap(map: &[State]) -> String {
+    map.iter().map(|s| match s {
+        State::Working => ".",
+        State::Damaged => "#",
+        State::Unknown => "?",
+    }).collect()
+}
+
+fn nx(map: &[State], damaged_runs: &[i64], in_dmg_in: bool) -> i64 {
+    if damaged_runs.is_empty() {
+        if map.iter().any(|s| *s == State::Damaged) {
+            println!("returning 0 because damaged and no runs left");
+            return 0;
+        } else {
+            println!("returning 1 because no runs left and no damage");
+            return 1;
+        }
+    }
+
+    let mut expected_run = damaged_runs[0];
+    //println!("expected_run on entry: {}", expected_run);
+    let mut count: i64 = 0;
+
+    let maplen = map.len();
+    let mut i = 0;
+    let mut first_dmg = in_dmg_in;
+    let mut in_dmg = in_dmg_in;
+    while i < maplen {
+        if map[i] == State::Working {
+            in_dmg = false;
+
+            if first_dmg && expected_run > 0 {
+                println!("returning 0 because expected more run but found working");
+                return 0;
+            }
+
+            // we matched a run
+            if expected_run == 0 {
+                count += num_match(&map[i+1..], &damaged_runs[1..], false);
+                println!("returning {} because matched a run, so went next", count);
+                return count;
+            }
+
+            while i < maplen && map[i] == State::Working {
+                i += 1;
+            }
+            continue;
+        }
+
+        if map[i] == State::Damaged {
+            first_dmg = true;
+            in_dmg = true;
+            while i < maplen && map[i] == State::Damaged {
+                i += 1;
+                expected_run -= 1;
+
+                if expected_run < 0 {
+                    return 0;
+                }
+            }
+            continue;
+        }
+
+        if map[i] == State::Unknown {
+            if in_dmg && expected_run > 0 {
+                println!("Unknown but expected {}", expected_run);
+                // this has to be a '#', so we can skip it and assume it'll be a '#'
+                i += 1;
+                expected_run -= 1;
+                continue;
+            }
+
+            let mut new_map = map.to_vec();
+            let mut ca = 0;
+            let mut cb = 0;
+
+            if expected_run == 0 {
+                // we expect to end a run here, the only valid option is Working,
+                new_map[i] = State::Working;
+                println!("new_map A: {}", smap(&new_map));
+                ca = num_match(&new_map[i..], &damaged_runs[1..], false);
+            } else {
+                // we are not in a dmg, but expected_run > 0.
+                // previous char was a working.
+
+                new_map[i] = State::Working;
+                println!("new_map B1: {}", smap(&new_map));
+                ca = num_match(&new_map[i..], &damaged_runs, false);
+
+                new_map[i] = State::Damaged;
+                println!("new_map B2: {}", smap(&new_map));
+                cb = num_match(&new_map[i..], &damaged_runs, in_dmg);
+            }
+
+            count += ca + cb;
+            println!("for {} {:?} returning SUM {} + {} = {} after handling ?", smap(map), damaged_runs, ca, cb, count);
+            return count;
+        }
+    }
+
+    // we ran out of characters.
+    if expected_run != 0 {
+        println!("returning 0 because run was wrong length");
+        return 0;
+    }
+
+    if damaged_runs.len() > 1 {
+        println!("returning 0 because there were more runs left and we ran out of chars");
+        return 0;
+    }
+
+    println!("returning 1 at end");
+    return 1;
+}
 
 fn is_match(map: &[State], damaged_runs: &[i64]) -> bool {
     let mut ri: usize = 0;
@@ -79,6 +211,36 @@ fn is_match(map: &[State], damaged_runs: &[i64]) -> bool {
     true
 }
 
+fn day12_line(line: &str) -> i64 {
+    let parts = line.split_whitespace().collect_vec();
+
+    let map = State::from_str(parts[0]);
+    let damaged_runs = parts[1].split(",").map(|s| s.parse::<i64>().unwrap()).collect_vec();
+
+    let mut to_check: Vec<Vec<State>> = vec![map];
+    let mut line_result = 0;
+    while !to_check.is_empty() {
+        let work = to_check;
+        to_check = vec![];
+        for workline in work {
+            if let Some(first) = workline.iter().position(|s| *s == State::Unknown) {
+                let mut new_workline = workline.clone();
+                new_workline[first] = State::Working;
+                to_check.push(new_workline.clone());
+                new_workline[first] = State::Damaged;
+                to_check.push(new_workline);
+            } else {
+                let ok = is_match(&workline, &damaged_runs);
+                if ok {
+                    line_result += 1;
+                }
+            }
+        }
+    }
+    line_result
+}
+
+
 fn day12_inner(input_fname: &str) -> (i64, Vec<i64>) {
     let data = std::fs::read_to_string(input_fname).unwrap();
 
@@ -91,104 +253,30 @@ fn day12_inner(input_fname: &str) -> (i64, Vec<i64>) {
         let map_1 = State::from_str(parts[0]);
         let damaged_runs_1 = parts[1].split(",").map(|s| s.parse::<i64>().unwrap()).collect_vec();
 
-        let mut ex_results: Vec<i64> = vec![];
+        let mut map: Vec<State> = vec![];
+        let mut damaged_runs: Vec<i64> = vec![];
 
-        for ex in 0..3 {
-
-            let mut map: Vec<State> = vec![];
-            let mut damaged_runs: Vec<i64> = vec![];
-
+        if true {
+        for i in 0..5 {
             map.extend(&map_1);
-            if ex == 1 {
+            if i != 4 {
                 map.push(State::Unknown);
-            } else if ex == 2 {
-                map.insert(0, State::Unknown);
             }
-
             damaged_runs.extend(&damaged_runs_1);
-
-            let total_damaged: i64 = damaged_runs.iter().sum();
-
-            //???.### 1,1,3
-
-            //println!("=====");
-            //println!("{:?}", map);
-            //println!("=====");
-            let mut line_result: i64 = 0;
-            let mut to_check: Vec<Vec<State>> = vec![map];
-
-            let mut did = 0;
-
-            while !to_check.is_empty() {
-                let work = to_check.clone();
-                //println!("did {}, left to check {}", did, to_check.len());
-                to_check.clear();
-                for workline in work {
-                    if let Some(first) = workline.iter().position(|s| *s == State::Unknown) {
-                        let mut new_workline = workline.clone();
-                        new_workline[first] = State::Working;
-                        to_check.push(new_workline.clone());
-                        new_workline[first] = State::Damaged;
-                        to_check.push(new_workline);
-                    } else {
-                        let ok = is_match(&workline, &damaged_runs);
-                        //println!("{:?} -> {}", workline, ok);
-                        if ok {
-                            line_result += 1;
-                        }
-
-                        //did += 1;
-                        //if did % 100000 == 0 {
-                        //    println!("did {}, left to check {}", did, to_check.len());
-                        //}
-                    }
-                }
-            }
-
-            ex_results.push(line_result);
+        }
+        } else {
+            map = map_1;
+            damaged_runs = damaged_runs_1;
         }
 
-        println!("ex_results: {:?}", ex_results);
-        let orig_r = ex_results[0];
-        let append_r = ex_results[1];
-        let prepend_r = ex_results[2];
-
-        let by_appending = append_r.pow(4) * orig_r;
-        let by_prepending = prepend_r.pow(4) * orig_r;
-        let by_orig = orig_r * orig_r.pow(5);
-
-        // if the input map ends with a run of damaged with no ?'s, then we must use orig
-        let must_use_orig = if map_1.last() == Some(&State::Damaged) {
-            let mut must_use_orig = None;
-            for &item in map_1.iter().rev() {
-                if item == State::Damaged {
-                    continue;
-                }
-                if item == State::Working {
-                    must_use_orig = Some(true);
-                    break;
-                }
-                if item == State::Unknown {
-                    must_use_orig = Some(false);
-                    break;
-                }
-            }
-            must_use_orig.unwrap_or(false)
-        } else {
-            false
-        };
-
-        let line_result;
-
-        if must_use_orig {
-            line_result = by_appending;
-        } else {
-            line_result = max(by_appending, by_prepending);
-        }
-
-        println!("line result: {}", line_result);
-        result += line_result;
+        println!("");
+        println!("");
+        println!("");
+        println!("====== {}", smap(&map));
+        let line_result = num_match(&map, &damaged_runs, false);
         springmap.push(line_result);
+
+        result += line_result;
     }
 
     (result, springmap)
@@ -206,9 +294,13 @@ fn main() {
     let (r, d) = day12_inner("inputs/day12-sample.txt");
     println!("{:?}", d);
     expect_vec(&[1, 16384, 1, 16, 2500, 506250], &d);
+    //expect_vec(&[1, 4, 1, 1, 4, 10], &d);
     println!("Result: {}", r);
 
     //let (r, d) = day12_inner("inputs/day12.txt");
+    //let r = num_match(&State::from_str("?###????????"), &[3,2,1]);
+    //let r = num_match(&State::from_str("???????"), &[2,1], false);
+    //let a = day12_line("??????? 2,1");
 
-    println!("Result: {}", r);
+    //println!("Result: {} {}", r, a);
 }

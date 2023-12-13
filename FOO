@@ -1,0 +1,499 @@
+ checking: ?###????????     [3, 2, 1]
+new_map B1: .###????????
+  checking: ###????????     [3, 2, 1]
+new_map A: ###.???????
+   checking: ???????     [2, 1]
+new_map B1: .??????
+    checking: ??????     [2, 1]
+new_map B1: .?????
+     checking: ?????     [2, 1]
+new_map B1: .????
+      checking: ????     [2, 1]
+new_map B1: .???
+       checking: ???     [2, 1]
+new_map B1: .??
+        checking: ??     [2, 1]
+new_map B1: .?
+         checking: ?     [2, 1]
+new_map B1: .
+          checking:      [2, 1]
+returning 0 because run was wrong length
+          map:  runs: [2, 1] => 0
+new_map B2: #
+          checking: #     [2, 1]
+returning 0 because run was wrong length
+          map: # runs: [2, 1] => 0
+for ? [2, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: ? runs: [2, 1] => 0
+new_map B2: #?
+         checking: #?     [2, 1]
+new_map B1: #.
+          checking:      [1, 1]
+returning 0 because run was wrong length
+          map:  runs: [1, 1] => 0
+new_map B2: ##
+          checking: #     [1, 1]
+returning 0 because there were more runs left and we ran out of chars
+          map: # runs: [1, 1] => 0
+for #? [2, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: #? runs: [2, 1] => 0
+for ?? [2, 1] returning SUM 0 + 0 = 0 after handling ?
+        map: ?? runs: [2, 1] => 0
+new_map B2: #??
+        checking: #??     [2, 1]
+new_map B1: #.?
+         checking: ?     [1, 1]
+new_map B1: .
+          checking:      [1, 1]
+returning 0 because run was wrong length
+          map:  runs: [1, 1] => 0
+new_map B2: #
+          checking: #     [1, 1]
+returning 0 because there were more runs left and we ran out of chars
+          map: # runs: [1, 1] => 0
+for ? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: ? runs: [1, 1] => 0
+new_map B2: ##?
+         checking: #?     [1, 1]
+new_map A: #.
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+for #? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: #? runs: [1, 1] => 0
+for #?? [2, 1] returning SUM 0 + 0 = 0 after handling ?
+        map: #?? runs: [2, 1] => 0
+for ??? [2, 1] returning SUM 0 + 0 = 0 after handling ?
+       map: ??? runs: [2, 1] => 0
+new_map B2: #???
+       checking: #???     [2, 1]
+new_map B1: #.??
+        checking: ??     [1, 1]
+new_map B1: .?
+         checking: ?     [1, 1]
+new_map B1: .
+          checking:      [1, 1]
+returning 0 because run was wrong length
+          map:  runs: [1, 1] => 0
+new_map B2: #
+          checking: #     [1, 1]
+returning 0 because there were more runs left and we ran out of chars
+          map: # runs: [1, 1] => 0
+for ? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: ? runs: [1, 1] => 0
+new_map B2: #?
+         checking: #?     [1, 1]
+new_map A: #.
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+for #? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: #? runs: [1, 1] => 0
+for ?? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+        map: ?? runs: [1, 1] => 0
+new_map B2: ##??
+        checking: #??     [1, 1]
+new_map A: #.?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+for #?? [1, 1] returning SUM 1 + 0 = 1 after handling ?
+        map: #?? runs: [1, 1] => 1
+for #??? [2, 1] returning SUM 0 + 1 = 1 after handling ?
+       map: #??? runs: [2, 1] => 1
+for ???? [2, 1] returning SUM 0 + 1 = 1 after handling ?
+      map: ???? runs: [2, 1] => 1
+new_map B2: #????
+      checking: #????     [2, 1]
+new_map B1: #.???
+       checking: ???     [1, 1]
+new_map B1: .??
+        checking: ??     [1, 1]
+new_map B1: .?
+         checking: ?     [1, 1]
+new_map B1: .
+          checking:      [1, 1]
+returning 0 because run was wrong length
+          map:  runs: [1, 1] => 0
+new_map B2: #
+          checking: #     [1, 1]
+returning 0 because there were more runs left and we ran out of chars
+          map: # runs: [1, 1] => 0
+for ? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: ? runs: [1, 1] => 0
+new_map B2: #?
+         checking: #?     [1, 1]
+new_map A: #.
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+for #? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: #? runs: [1, 1] => 0
+for ?? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+        map: ?? runs: [1, 1] => 0
+new_map B2: #??
+        checking: #??     [1, 1]
+new_map A: #.?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+for #?? [1, 1] returning SUM 1 + 0 = 1 after handling ?
+        map: #?? runs: [1, 1] => 1
+for ??? [1, 1] returning SUM 0 + 1 = 1 after handling ?
+       map: ??? runs: [1, 1] => 1
+new_map B2: ##???
+       checking: #???     [1, 1]
+new_map A: #.??
+        checking: ??     [1]
+new_map B1: .?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+new_map B2: #?
+         checking: #?     [1]
+new_map A: #.
+          checking:      []
+returning 1 because no runs left and no damage
+          map:  runs: [] => 1
+for #? [1] returning SUM 1 + 0 = 1 after handling ?
+         map: #? runs: [1] => 1
+for ?? [1] returning SUM 1 + 1 = 2 after handling ?
+        map: ?? runs: [1] => 2
+for #??? [1, 1] returning SUM 2 + 0 = 2 after handling ?
+       map: #??? runs: [1, 1] => 2
+for #???? [2, 1] returning SUM 1 + 2 = 3 after handling ?
+      map: #???? runs: [2, 1] => 3
+for ????? [2, 1] returning SUM 1 + 3 = 4 after handling ?
+     map: ????? runs: [2, 1] => 4
+new_map B2: #?????
+     checking: #?????     [2, 1]
+new_map B1: #.????
+      checking: ????     [1, 1]
+new_map B1: .???
+       checking: ???     [1, 1]
+new_map B1: .??
+        checking: ??     [1, 1]
+new_map B1: .?
+         checking: ?     [1, 1]
+new_map B1: .
+          checking:      [1, 1]
+returning 0 because run was wrong length
+          map:  runs: [1, 1] => 0
+new_map B2: #
+          checking: #     [1, 1]
+returning 0 because there were more runs left and we ran out of chars
+          map: # runs: [1, 1] => 0
+for ? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: ? runs: [1, 1] => 0
+new_map B2: #?
+         checking: #?     [1, 1]
+new_map A: #.
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+for #? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: #? runs: [1, 1] => 0
+for ?? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+        map: ?? runs: [1, 1] => 0
+new_map B2: #??
+        checking: #??     [1, 1]
+new_map A: #.?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+for #?? [1, 1] returning SUM 1 + 0 = 1 after handling ?
+        map: #?? runs: [1, 1] => 1
+for ??? [1, 1] returning SUM 0 + 1 = 1 after handling ?
+       map: ??? runs: [1, 1] => 1
+new_map B2: #???
+       checking: #???     [1, 1]
+new_map A: #.??
+        checking: ??     [1]
+new_map B1: .?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+new_map B2: #?
+         checking: #?     [1]
+new_map A: #.
+          checking:      []
+returning 1 because no runs left and no damage
+          map:  runs: [] => 1
+for #? [1] returning SUM 1 + 0 = 1 after handling ?
+         map: #? runs: [1] => 1
+for ?? [1] returning SUM 1 + 1 = 2 after handling ?
+        map: ?? runs: [1] => 2
+for #??? [1, 1] returning SUM 2 + 0 = 2 after handling ?
+       map: #??? runs: [1, 1] => 2
+for ???? [1, 1] returning SUM 1 + 2 = 3 after handling ?
+      map: ???? runs: [1, 1] => 3
+new_map B2: ##????
+      checking: #????     [1, 1]
+new_map A: #.???
+       checking: ???     [1]
+new_map B1: .??
+        checking: ??     [1]
+new_map B1: .?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+new_map B2: #?
+         checking: #?     [1]
+new_map A: #.
+          checking:      []
+returning 1 because no runs left and no damage
+          map:  runs: [] => 1
+for #? [1] returning SUM 1 + 0 = 1 after handling ?
+         map: #? runs: [1] => 1
+for ?? [1] returning SUM 1 + 1 = 2 after handling ?
+        map: ?? runs: [1] => 2
+new_map B2: #??
+        checking: #??     [1]
+new_map A: #.?
+         checking: ?     []
+returning 1 because no runs left and no damage
+         map: ? runs: [] => 1
+for #?? [1] returning SUM 1 + 0 = 1 after handling ?
+        map: #?? runs: [1] => 1
+for ??? [1] returning SUM 2 + 1 = 3 after handling ?
+       map: ??? runs: [1] => 3
+for #???? [1, 1] returning SUM 3 + 0 = 3 after handling ?
+      map: #???? runs: [1, 1] => 3
+for #????? [2, 1] returning SUM 3 + 3 = 6 after handling ?
+     map: #????? runs: [2, 1] => 6
+for ?????? [2, 1] returning SUM 4 + 6 = 10 after handling ?
+    map: ?????? runs: [2, 1] => 10
+new_map B2: #??????
+    checking: #??????     [2, 1]
+new_map B1: #.?????
+     checking: ?????     [1, 1]
+new_map B1: .????
+      checking: ????     [1, 1]
+new_map B1: .???
+       checking: ???     [1, 1]
+new_map B1: .??
+        checking: ??     [1, 1]
+new_map B1: .?
+         checking: ?     [1, 1]
+new_map B1: .
+          checking:      [1, 1]
+returning 0 because run was wrong length
+          map:  runs: [1, 1] => 0
+new_map B2: #
+          checking: #     [1, 1]
+returning 0 because there were more runs left and we ran out of chars
+          map: # runs: [1, 1] => 0
+for ? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: ? runs: [1, 1] => 0
+new_map B2: #?
+         checking: #?     [1, 1]
+new_map A: #.
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+for #? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+         map: #? runs: [1, 1] => 0
+for ?? [1, 1] returning SUM 0 + 0 = 0 after handling ?
+        map: ?? runs: [1, 1] => 0
+new_map B2: #??
+        checking: #??     [1, 1]
+new_map A: #.?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+for #?? [1, 1] returning SUM 1 + 0 = 1 after handling ?
+        map: #?? runs: [1, 1] => 1
+for ??? [1, 1] returning SUM 0 + 1 = 1 after handling ?
+       map: ??? runs: [1, 1] => 1
+new_map B2: #???
+       checking: #???     [1, 1]
+new_map A: #.??
+        checking: ??     [1]
+new_map B1: .?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+new_map B2: #?
+         checking: #?     [1]
+new_map A: #.
+          checking:      []
+returning 1 because no runs left and no damage
+          map:  runs: [] => 1
+for #? [1] returning SUM 1 + 0 = 1 after handling ?
+         map: #? runs: [1] => 1
+for ?? [1] returning SUM 1 + 1 = 2 after handling ?
+        map: ?? runs: [1] => 2
+for #??? [1, 1] returning SUM 2 + 0 = 2 after handling ?
+       map: #??? runs: [1, 1] => 2
+for ???? [1, 1] returning SUM 1 + 2 = 3 after handling ?
+      map: ???? runs: [1, 1] => 3
+new_map B2: #????
+      checking: #????     [1, 1]
+new_map A: #.???
+       checking: ???     [1]
+new_map B1: .??
+        checking: ??     [1]
+new_map B1: .?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+new_map B2: #?
+         checking: #?     [1]
+new_map A: #.
+          checking:      []
+returning 1 because no runs left and no damage
+          map:  runs: [] => 1
+for #? [1] returning SUM 1 + 0 = 1 after handling ?
+         map: #? runs: [1] => 1
+for ?? [1] returning SUM 1 + 1 = 2 after handling ?
+        map: ?? runs: [1] => 2
+new_map B2: #??
+        checking: #??     [1]
+new_map A: #.?
+         checking: ?     []
+returning 1 because no runs left and no damage
+         map: ? runs: [] => 1
+for #?? [1] returning SUM 1 + 0 = 1 after handling ?
+        map: #?? runs: [1] => 1
+for ??? [1] returning SUM 2 + 1 = 3 after handling ?
+       map: ??? runs: [1] => 3
+for #???? [1, 1] returning SUM 3 + 0 = 3 after handling ?
+      map: #???? runs: [1, 1] => 3
+for ????? [1, 1] returning SUM 3 + 3 = 6 after handling ?
+     map: ????? runs: [1, 1] => 6
+new_map B2: ##?????
+     checking: #?????     [1, 1]
+new_map A: #.????
+      checking: ????     [1]
+new_map B1: .???
+       checking: ???     [1]
+new_map B1: .??
+        checking: ??     [1]
+new_map B1: .?
+         checking: ?     [1]
+new_map B1: .
+          checking:      [1]
+returning 0 because run was wrong length
+          map:  runs: [1] => 0
+new_map B2: #
+          checking: #     [1]
+returning 1 at end
+          map: # runs: [1] => 1
+for ? [1] returning SUM 0 + 1 = 1 after handling ?
+         map: ? runs: [1] => 1
+new_map B2: #?
+         checking: #?     [1]
+new_map A: #.
+          checking:      []
+returning 1 because no runs left and no damage
+          map:  runs: [] => 1
+for #? [1] returning SUM 1 + 0 = 1 after handling ?
+         map: #? runs: [1] => 1
+for ?? [1] returning SUM 1 + 1 = 2 after handling ?
+        map: ?? runs: [1] => 2
+new_map B2: #??
+        checking: #??     [1]
+new_map A: #.?
+         checking: ?     []
+returning 1 because no runs left and no damage
+         map: ? runs: [] => 1
+for #?? [1] returning SUM 1 + 0 = 1 after handling ?
+        map: #?? runs: [1] => 1
+for ??? [1] returning SUM 2 + 1 = 3 after handling ?
+       map: ??? runs: [1] => 3
+new_map B2: #???
+       checking: #???     [1]
+new_map A: #.??
+        checking: ??     []
+returning 1 because no runs left and no damage
+        map: ?? runs: [] => 1
+for #??? [1] returning SUM 1 + 0 = 1 after handling ?
+       map: #??? runs: [1] => 1
+for ???? [1] returning SUM 3 + 1 = 4 after handling ?
+      map: ???? runs: [1] => 4
+for #????? [1, 1] returning SUM 4 + 0 = 4 after handling ?
+     map: #????? runs: [1, 1] => 4
+for #?????? [2, 1] returning SUM 6 + 4 = 10 after handling ?
+    map: #?????? runs: [2, 1] => 10
+for ??????? [2, 1] returning SUM 10 + 10 = 20 after handling ?
+   map: ??????? runs: [2, 1] => 20
+for ###???????? [3, 2, 1] returning SUM 20 + 0 = 20 after handling ?
+  map: ###???????? runs: [3, 2, 1] => 20
+new_map B2: ####????????
+  checking: ####????????     [3, 2, 1]
+  map: ####???????? runs: [3, 2, 1] => 0
+for ?###???????? [3, 2, 1] returning SUM 20 + 0 = 20 after handling ?
+ map: ?###???????? runs: [3, 2, 1] => 20
+Result: 20 10
