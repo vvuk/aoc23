@@ -114,7 +114,7 @@ fn parse_patterns(data: &str) -> Vec<Pattern> {
     result
 }
 
-fn day11_inner(input_fname: &str) -> (usize, Vec<usize>) {
+fn day13_inner(input_fname: &str) -> (usize, Vec<usize>) {
     let data = std::fs::read_to_string(input_fname).unwrap();
     let patterns = parse_patterns(&data);
 
@@ -161,9 +161,9 @@ fn day11_inner(input_fname: &str) -> (usize, Vec<usize>) {
 }
 
 fn main() {
-    let (r, d) = day11_inner("inputs/day13-sample.txt");
+    let (r, d) = day13_inner("inputs/day13-sample.txt");
     println!("Result: {}", r);
 
-    let (r, d) = day11_inner("inputs/day13.txt");
+    let (r, d) = day13_inner("inputs/day13.txt");
     println!("Result: {}", r);
 }
