@@ -91,59 +91,104 @@ fn day12_inner(input_fname: &str) -> (i64, Vec<i64>) {
         let map_1 = State::from_str(parts[0]);
         let damaged_runs_1 = parts[1].split(",").map(|s| s.parse::<i64>().unwrap()).collect_vec();
 
-        let mut map: Vec<State> = vec![];
-        let mut damaged_runs: Vec<i64> = vec![];
+        let mut ex_results: Vec<i64> = vec![];
 
-        // I don't think we can do this.
-        for i in 0..5 {
+        for ex in 0..3 {
+
+            let mut map: Vec<State> = vec![];
+            let mut damaged_runs: Vec<i64> = vec![];
+
             map.extend(&map_1);
-            if i != 4 {
+            if ex == 1 {
                 map.push(State::Unknown);
+            } else if ex == 2 {
+                map.insert(0, State::Unknown);
             }
+
             damaged_runs.extend(&damaged_runs_1);
-        }
 
-        let total_damaged: i64 = damaged_runs.iter().sum();
+            let total_damaged: i64 = damaged_runs.iter().sum();
 
-        //???.### 1,1,3
+            //???.### 1,1,3
 
-        //println!("=====");
-        //println!("{:?}", map);
-        //println!("=====");
-        let mut line_result: i64 = 0;
-        let mut to_check: Vec<Vec<State>> = vec![map];
+            //println!("=====");
+            //println!("{:?}", map);
+            //println!("=====");
+            let mut line_result: i64 = 0;
+            let mut to_check: Vec<Vec<State>> = vec![map];
 
-        let mut did = 0;
+            let mut did = 0;
 
-        while !to_check.is_empty() {
-            let work = to_check.clone();
-            println!("did {}, left to check {}", did, to_check.len());
-            to_check.clear();
-            for workline in work {
-                if let Some(first) = workline.iter().position(|s| *s == State::Unknown) {
-                    let mut new_workline = workline.clone();
-                    new_workline[first] = State::Working;
-                    to_check.push(new_workline.clone());
-                    new_workline[first] = State::Damaged;
-                    to_check.push(new_workline);
-                } else {
-                    let ok = is_match(&workline, &damaged_runs);
-                    //println!("{:?} -> {}", workline, ok);
-                    if ok {
-                        line_result += 1;
-                    }
+            while !to_check.is_empty() {
+                let work = to_check.clone();
+                //println!("did {}, left to check {}", did, to_check.len());
+                to_check.clear();
+                for workline in work {
+                    if let Some(first) = workline.iter().position(|s| *s == State::Unknown) {
+                        let mut new_workline = workline.clone();
+                        new_workline[first] = State::Working;
+                        to_check.push(new_workline.clone());
+                        new_workline[first] = State::Damaged;
+                        to_check.push(new_workline);
+                    } else {
+                        let ok = is_match(&workline, &damaged_runs);
+                        //println!("{:?} -> {}", workline, ok);
+                        if ok {
+                            line_result += 1;
+                        }
 
-                    did += 1;
-                    if did % 100000 == 0 {
-                        println!("did {}, left to check {}", did, to_check.len());
+                        //did += 1;
+                        //if did % 100000 == 0 {
+                        //    println!("did {}, left to check {}", did, to_check.len());
+                        //}
                     }
                 }
             }
+
+            ex_results.push(line_result);
         }
 
-        result += line_result * line_result * line_result * line_result * line_result;
-        springmap.push(line_result);
+        println!("ex_results: {:?}", ex_results);
+        let orig_r = ex_results[0];
+        let append_r = ex_results[1];
+        let prepend_r = ex_results[2];
+
+        let by_appending = append_r.pow(4) * orig_r;
+        let by_prepending = prepend_r.pow(4) * orig_r;
+        let by_orig = orig_r * orig_r.pow(5);
+
+        // if the input map ends with a run of damaged with no ?'s, then we must use orig
+        let must_use_orig = if map_1.last() == Some(&State::Damaged) {
+            let mut must_use_orig = None;
+            for &item in map_1.iter().rev() {
+                if item == State::Damaged {
+                    continue;
+                }
+                if item == State::Working {
+                    must_use_orig = Some(true);
+                    break;
+                }
+                if item == State::Unknown {
+                    must_use_orig = Some(false);
+                    break;
+                }
+            }
+            must_use_orig.unwrap_or(false)
+        } else {
+            false
+        };
+
+        let line_result;
+
+        if must_use_orig {
+            line_result = by_appending;
+        } else {
+            line_result = max(by_appending, by_prepending);
+        }
+
         println!("line result: {}", line_result);
+        result += line_result;
+        springmap.push(line_result);
     }
 
     (result, springmap)
@@ -159,9 +204,11 @@ fn main() {
     */
 
     let (r, d) = day12_inner("inputs/day12-sample.txt");
-    expect_vec(&[1, 4, 1, 1, 4, 10], &d);
+    println!("{:?}", d);
+    expect_vec(&[1, 16384, 1, 16, 2500, 506250], &d);
     println!("Result: {}", r);
 
     //let (r, d) = day12_inner("inputs/day12.txt");
+
     println!("Result: {}", r);
 }
