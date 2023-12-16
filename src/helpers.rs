@@ -31,3 +31,16 @@ pub fn print_map(map: &Vec<Vec<char>>) {
         println!("");
     }
 }
+
+pub fn print_bool_map(map: &Vec<Vec<i32>>) {
+    for row in map {
+        for c in row {
+            if *c != 0 {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!("");
+    }
+}
