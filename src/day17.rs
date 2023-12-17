@@ -90,15 +90,21 @@ impl Map {
             for dir in 0..3 {
                 let dp = Map::direction_dx(current, cameFrom[&current], dir);
                 let neighbor = current.go(dp);
+                let cur_straight = straightScore[&current];
+
                 if !self.in_range(neighbor) {
                     println!("{} not in range ({:?})", dir_name(dir), neighbor);
                     continue;
                 }
                 println!("    checking {} ({:?})", dir_name(dir), neighbor);
 
-                //if dir == STRAIGHT && straight_count >= 3 {
-                //    continue;
-                //}
+                if dir == STRAIGHT {
+                    assert!(cur_straight <= 3);
+                    if cur_straight == 3 {
+                        // we can't go straight from this point, so don't even bother checking
+                        continue; 
+                    }
+                }
 
                 let tentative_gScore = gScore[&current] + self.heat_at(neighbor);
 
@@ -108,6 +114,12 @@ impl Map {
                     gScore.insert(neighbor, tentative_gScore);
                     fScore.insert(neighbor, tentative_gScore + self.dist_to_end(neighbor));
                     openSet.insert(neighbor);
+
+                    if dir == STRAIGHT {
+                        straightScore.insert(neighbor, cur_straight + 1);
+                    } else {
+                        straightScore.insert(neighbor, 0);
+                    }
                 }
             }
         }
