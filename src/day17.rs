@@ -6,7 +6,7 @@ use regex::Regex;
 mod helpers;
 use helpers::*;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Vec2 {
     x: i64,
     y: i64,
@@ -40,6 +40,64 @@ struct Map {
 }
 
 impl Map {
+    fn reconstruct_path(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> Vec<Vec2> {
+        let mut total_path = vec![current];
+        let mut current = current;
+        let origin = Vec2 { x: 0, y: 0 };
+        while cameFrom.contains_key(&current) {
+            current = cameFrom[&current];
+            total_path.push(current);
+            if current == origin {
+                break;
+            }
+        }
+        total_path.reverse();
+        total_path
+    }
+
+    fn a_star(&self, start: Vec2, goal: Vec2) -> Vec<Vec2> {
+        let mut openSet = HashSet::new();
+        // cameFrom[n] is the node immediately preceding n on the cheapest path
+        let mut cameFrom: HashMap<Vec2, Vec2> = HashMap::new();
+
+        let mut gScore: HashMap<Vec2, i64> = HashMap::new();
+        let mut fScore: HashMap<Vec2, i64> = HashMap::new();
+
+        cameFrom.insert(start, Vec2 { x: -1, y: 0 });
+        openSet.insert(start);
+        gScore.insert(start, 0);
+        fScore.insert(start, self.dist_to_end(start));
+
+        let mut straight_count: i32 = -1; // special for the very first step since we haven't actually moved yet
+
+        while !openSet.is_empty() {
+            let current = openSet.iter().min_by_key(|p| fScore[p]).unwrap().clone();
+
+            if current == goal {
+                return Map::reconstruct_path(&cameFrom, current);
+            }
+
+            openSet.remove(&current);
+            for dir in 0..2 {
+                let neighbor = Map::direction_dx(current, cameFrom[&current], dir);
+                //if dir == STRAIGHT && straight_count >= 3 {
+                //    continue;
+                //}
+
+                let tentative_gScore = gScore[&current] + self.heat_at(neighbor);
+
+                if !gScore.contains_key(&neighbor) || tentative_gScore < gScore[&neighbor] {
+                    cameFrom.insert(neighbor, current);
+                    gScore.insert(neighbor, tentative_gScore);
+                    fScore.insert(neighbor, tentative_gScore + self.dist_to_end(neighbor));
+                    openSet.insert(neighbor);
+                }
+            }
+        }
+
+        panic!("Can't find path")
+    }
+
     fn direction_dx(p: Vec2, last_p: Vec2, dir: Direction) -> Vec2 {
         let dx = p.x - last_p.x;
         let dy = p.y - last_p.y;
@@ -106,7 +164,7 @@ impl Map {
         let heat = self.heat_at(pos);
         let dist_to_end = self.dist_to_end(pos);
 
-        heat * dist_to_end
+        heat + dist_to_end
     }
 
     fn in_range(&self, p: Vec2) -> bool {
@@ -116,7 +174,9 @@ impl Map {
     fn dist_to_end(&self, pos: Vec2) -> i64 {
         let ndx = self.fin.x - pos.x;
         let ndy = self.fin.y - pos.y;
-        ndx * ndx + ndy * ndy
+
+        // manhattan distance
+        ndx.abs() + ndy.abs()
     }
 }
 
@@ -132,56 +192,12 @@ fn day17_inner(input_fname: &str) -> (i64, Vec<usize>) {
 
     let map = Map { map, fin: target };
 
-    // I don't think -1 x or -1 y should matter
-    let mut last_pos = Vec2 { x: -1, y: 0 };
     let mut pos = Vec2 { x: 0, y: 0 };
 
-    let mut seen = vec![vec![false; map.map[0].len()]; map.map.len()];
-    let mut straight_count: i32 = -1; // special for the very first step since we haven't actually moved yet
-    let mut result = 0;
+    let apath = map.a_star(pos, map.fin);
+    println!("{:?}", apath);
 
-    while pos != target {
-        println!("pos: {:?}, last_pos: {:?}", pos, last_pos);
-        let dir_costs = [0, 1, 2].map(|dir| {
-            map.weight_next(pos, last_pos, dir, straight_count, &seen, 3)
-        });
-
-        println!("... STRAIGHT: {:?} LEFT: {:?} RIGHT: {:?}",
-            dir_costs[0], dir_costs[1], dir_costs[2]);
-
-        // find index of lowest dir_cost
-        let mut min_cost = std::i64::MAX;
-        let mut min_cost_dir = usize::MAX;
-        for (di, cost) in dir_costs.iter().enumerate() {
-            if cost.is_none() {
-                continue;
-            }
-
-            let cost = cost.unwrap();
-            if cost < min_cost {
-                min_cost = cost;
-                min_cost_dir = di;
-            }
-        }
-
-        assert_ne!(min_cost, std::i64::MAX);
-
-        let step_dir = Map::direction_dx(pos, last_pos, min_cost_dir);
-
-        last_pos = pos;
-        pos = pos.go(step_dir);
-        result += map.heat_at(pos);
-
-        seen[pos.y as usize][pos.x as usize] = true;
-
-        println!("{}", dir_name(min_cost_dir));
-        if min_cost_dir == STRAIGHT {
-            straight_count += 1;
-        } else {
-            straight_count = 0;
-        }
-    }
-
+    let result = 0;
     (result, vec![])
 }
 
