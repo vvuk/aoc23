@@ -62,6 +62,27 @@ impl Map {
         total_path
     }
 
+    fn can_go_straight(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> bool {
+        let mut straight_count = 0;
+        let fake_origin = Vec2 { x: -1, y: 0 };
+
+        let prev1 = cameFrom[&current];
+        if prev1 == fake_origin { return true; }
+        let prev2 = cameFrom[&prev1];
+        if prev2 == fake_origin { return true; }
+        let prev3 = cameFrom[&prev2];
+        if prev3 == fake_origin { return true; }
+
+        if (prev1.x == prev2.x && prev2.x == prev3.x) ||
+           (prev1.y == prev2.y && prev2.y == prev3.y)
+        {
+            println!("   {:?} {:?} {:?} are all in a line", prev1, prev2, prev3);
+            return false;
+        }
+
+        true
+    }
+
     fn a_star(&self, start: Vec2, goal: Vec2) -> Vec<Vec2> {
         let mut openSet = HashSet::new();
         // cameFrom[n] is the node immediately preceding n on the cheapest path
@@ -69,18 +90,15 @@ impl Map {
 
         let mut gScore: HashMap<Vec2, i64> = HashMap::new();
         let mut fScore: HashMap<Vec2, i64> = HashMap::new();
-        let mut straightScore: HashMap<Vec2, i64> = HashMap::new();
 
         cameFrom.insert(start, Vec2 { x: -1, y: 0 });
         openSet.insert(start);
         gScore.insert(start, 0);
         fScore.insert(start, self.dist_to_end(start));
-        straightScore.insert(start, -1);
 
         while !openSet.is_empty() {
             let current = openSet.iter().min_by_key(|p| fScore[p]).unwrap().clone();
-            let cur_straight = straightScore[&current];
-            println!("-- current: {:?}, openSet: {:?} [straight cur: {}]", current, openSet, cur_straight);
+            println!("-- current: {:?}, openSet: {:?}", current, openSet);
             //println!("-- best path: {:?}", Map::reconstruct_path(&cameFrom, current));
 
             if current == goal {
@@ -97,13 +115,8 @@ impl Map {
                     continue;
                 }
 
-                if dir == STRAIGHT {
-                    assert!(cur_straight < 3);
-                    if cur_straight == 2 {
-                        println!("    can't go straight");
-                        // we can't go straight from this point, so don't even bother checking
-                        continue; 
-                    }
+                if dir == STRAIGHT && !Map::can_go_straight(&cameFrom, current) {
+                    println!("    can't go straight");
                 }
 
                 println!("    checking {} ({:?})", dir_name(dir), neighbor);
@@ -116,13 +129,6 @@ impl Map {
                     gScore.insert(neighbor, tentative_gScore);
                     fScore.insert(neighbor, tentative_gScore + self.dist_to_end(neighbor));
                     openSet.insert(neighbor);
-
-                    if dir == STRAIGHT {
-                        println!("went straight, {:?} now has score {}", neighbor, cur_straight + 1);
-                        straightScore.insert(neighbor, cur_straight + 1);
-                    } else {
-                        straightScore.insert(neighbor, 0);
-                    }
                 }
             }
         }
