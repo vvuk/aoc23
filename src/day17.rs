@@ -63,20 +63,17 @@ impl Map {
     }
 
     fn can_go_straight(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> bool {
-        let mut straight_count = 0;
         let fake_origin = Vec2 { x: -1, y: 0 };
 
         let prev1 = cameFrom[&current];
         if prev1 == fake_origin { return true; }
         let prev2 = cameFrom[&prev1];
         if prev2 == fake_origin { return true; }
-        let prev3 = cameFrom[&prev2];
-        if prev3 == fake_origin { return true; }
 
-        if (prev1.x == prev2.x && prev2.x == prev3.x) ||
-           (prev1.y == prev2.y && prev2.y == prev3.y)
+        if (current.x == prev1.x && prev1.x == prev2.x) ||
+           (current.y == prev1.y && prev1.y == prev2.y)
         {
-            println!("   {:?} {:?} {:?} are all in a line", prev1, prev2, prev3);
+            println!("   {:?} {:?} {:?} are all in a line", current, prev1, prev2);
             return false;
         }
 
@@ -98,7 +95,7 @@ impl Map {
 
         while !openSet.is_empty() {
             let current = openSet.iter().min_by_key(|p| fScore[p]).unwrap().clone();
-            println!("-- current: {:?}, openSet: {:?}", current, openSet);
+            println!("-- current: {:?} from {:?}", current, cameFrom[&current]);
             //println!("-- best path: {:?}", Map::reconstruct_path(&cameFrom, current));
 
             if current == goal {
@@ -111,12 +108,13 @@ impl Map {
                 let neighbor = current.go(dp);
 
                 if !self.in_range(neighbor) {
-                    println!("{} not in range ({:?})", dir_name(dir), neighbor);
+                    println!("    can't go {} (not in range)", dir_name(dir));
                     continue;
                 }
 
                 if dir == STRAIGHT && !Map::can_go_straight(&cameFrom, current) {
                     println!("    can't go straight");
+                    continue;
                 }
 
                 println!("    checking {} ({:?})", dir_name(dir), neighbor);
@@ -124,7 +122,7 @@ impl Map {
                 let tentative_gScore = gScore[&current] + self.heat_at(neighbor);
 
                 if !gScore.contains_key(&neighbor) || tentative_gScore < gScore[&neighbor] {
-                    println!("{:?} -> {:?} ({})", current, neighbor, dir_name(dir));
+                    println!("        updating to {}; fscore: {} (DTE: {})", tentative_gScore, tentative_gScore + self.dist_to_end(neighbor), self.dist_to_end(neighbor));
                     cameFrom.insert(neighbor, current);
                     gScore.insert(neighbor, tentative_gScore);
                     fScore.insert(neighbor, tentative_gScore + self.dist_to_end(neighbor));
@@ -152,15 +150,18 @@ impl Map {
         self.map[pos.y as usize][pos.x as usize]
     }
 
-    fn weight(&self, pos: Vec2) -> i64 {
-        let heat = self.heat_at(pos);
-        let dist_to_end = self.dist_to_end(pos);
-
-        heat + dist_to_end
-    }
-
     fn in_range(&self, p: Vec2) -> bool {
         p.x >= 0 && p.y >= 0 && p.x <= self.fin.x && p.y <= self.fin.y
+    }
+
+    fn approx_to_end(&self, pos: Vec2) -> i64 {
+        let mut total = 0;
+        for y in pos.y..(self.map.len() as i64) {
+            for x in pos.x..(self.map[0].len() as i64) {
+                total += self.heat_at(Vec2 { x, y });
+            }
+        }
+        total
     }
 
     fn dist_to_end(&self, pos: Vec2) -> i64 {
@@ -189,10 +190,14 @@ fn day17_inner(input_fname: &str) -> (i64, Vec<usize>) {
     println!("\n\n");
     println!("PATH: {:?}", apath);
 
+    let mut cmap: Vec<Vec<char>> = vec![vec!['.'; map.map[0].len()]; map.map.len()];
     let mut result = 0;
     for p in &apath[1..] {
         result += map.heat_at(*p);
+        cmap[p.y as usize][p.x as usize] = '#';
     }
+
+    print_map(&cmap);
     (result, vec![])
 }
 
