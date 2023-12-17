@@ -2,14 +2,21 @@
 use std::{cmp::{min,max}, collections::HashMap, collections::HashSet, str::FromStr, ops::BitAnd};
 use itertools::Itertools;
 use regex::Regex;
+use std::fmt::Debug;
 
 mod helpers;
 use helpers::*;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Vec2 {
     x: i64,
     y: i64,
+}
+
+impl Debug for Vec2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}, {}]", self.x, self.y)
+    }
 }
 
 impl Vec2 {
@@ -62,24 +69,33 @@ impl Map {
 
         let mut gScore: HashMap<Vec2, i64> = HashMap::new();
         let mut fScore: HashMap<Vec2, i64> = HashMap::new();
+        let mut straightScore: HashMap<Vec2, i64> = HashMap::new();
 
         cameFrom.insert(start, Vec2 { x: -1, y: 0 });
         openSet.insert(start);
         gScore.insert(start, 0);
         fScore.insert(start, self.dist_to_end(start));
-
-        let mut straight_count: i32 = -1; // special for the very first step since we haven't actually moved yet
+        straightScore.insert(start, -1);
 
         while !openSet.is_empty() {
             let current = openSet.iter().min_by_key(|p| fScore[p]).unwrap().clone();
+            println!("-- current: {:?}, openSet: {:?}", current, openSet);
+            println!("-- best path: {:?}", Map::reconstruct_path(&cameFrom, current));
 
             if current == goal {
                 return Map::reconstruct_path(&cameFrom, current);
             }
 
             openSet.remove(&current);
-            for dir in 0..2 {
-                let neighbor = Map::direction_dx(current, cameFrom[&current], dir);
+            for dir in 0..3 {
+                let dp = Map::direction_dx(current, cameFrom[&current], dir);
+                let neighbor = current.go(dp);
+                if !self.in_range(neighbor) {
+                    println!("{} not in range ({:?})", dir_name(dir), neighbor);
+                    continue;
+                }
+                println!("    checking {} ({:?})", dir_name(dir), neighbor);
+
                 //if dir == STRAIGHT && straight_count >= 3 {
                 //    continue;
                 //}
@@ -87,6 +103,7 @@ impl Map {
                 let tentative_gScore = gScore[&current] + self.heat_at(neighbor);
 
                 if !gScore.contains_key(&neighbor) || tentative_gScore < gScore[&neighbor] {
+                    println!("{:?} -> {:?} ({})", current, neighbor, dir_name(dir));
                     cameFrom.insert(neighbor, current);
                     gScore.insert(neighbor, tentative_gScore);
                     fScore.insert(neighbor, tentative_gScore + self.dist_to_end(neighbor));
@@ -108,52 +125,6 @@ impl Map {
             RIGHT => Vec2 { x: -dy, y: dx },
             _ => panic!()
         }
-    }
-
-    // Return the heat cost going in direction `dir` from `pos`, with the last
-    // position being `last_pos` (to set the input direction vector).
-    // `steps` is the number of steps to look ahead, taking the least cost path at each leaf.
-    fn weight_next(&self, pos: Vec2, last_pos: Vec2, dir: Direction,
-        straight_count: i32,
-        seen: &[Vec<bool>],
-        steps: usize) -> Option<i64>
-    {
-        assert!(steps > 0);
-        // can't go more than 3 steps in the same direction. The initial "turn" step counts.
-        if dir == STRAIGHT && straight_count >= 3 {
-            return None;
-        }
-
-        let step = Map::direction_dx(pos, last_pos, dir);
-        let next = pos.go(step);
-        if !self.in_range(next) {
-            return None;
-        }
-
-        // don't backtrack
-        if seen[next.y as usize][next.x as usize] {
-            return None;
-        }
-
-        // Heat cost of entering 'next'. 
-        let weight = self.weight(next);
-        // If steps is 1, this is the last step; so the cost is just "weight".
-        if steps == 1 {
-            return Some(weight);
-        }
-
-        // Otherwise, calculate the cost of a subsequent step in each direction.
-        // Then take the minimum of those costs.
-        let straight = self.weight_next(next, pos, STRAIGHT, straight_count + 1, seen, steps - 1).map(|w| w + weight);
-        let left = self.weight_next(next, pos, LEFT, 0, seen, steps - 1).map(|w| w + weight);
-        let right = self.weight_next(next, pos, RIGHT, 0, seen, steps - 1).map(|w| w + weight);
-
-        if straight.is_none() && left.is_none() && right.is_none() {
-            // likely backtracked on all
-            return None;
-        }
-
-        Some(min(straight.unwrap_or(i64::MAX), min(left.unwrap_or(i64::MAX), right.unwrap_or(i64::MAX))))
     }
 
     fn heat_at(&self, pos: Vec2) -> i64 {
@@ -192,12 +163,15 @@ fn day17_inner(input_fname: &str) -> (i64, Vec<usize>) {
 
     let map = Map { map, fin: target };
 
-    let mut pos = Vec2 { x: 0, y: 0 };
+    let start = Vec2 { x: 0, y: 0 };
+    let apath = map.a_star(start, map.fin);
+    println!("\n\n");
+    println!("PATH: {:?}", apath);
 
-    let apath = map.a_star(pos, map.fin);
-    println!("{:?}", apath);
-
-    let result = 0;
+    let mut result = 0;
+    for p in &apath[1..] {
+        result += map.heat_at(*p);
+    }
     (result, vec![])
 }
 
