@@ -117,9 +117,8 @@ impl Map {
                     continue;
                 }
 
-                println!("    checking {} ({:?})", dir_name(dir), neighbor);
-
                 let tentative_gScore = gScore[&current] + self.heat_at(neighbor);
+                println!("    checking {} ({:?}) -> g {}", dir_name(dir), neighbor, tentative_gScore);
 
                 if !gScore.contains_key(&neighbor) || tentative_gScore < gScore[&neighbor] {
                     println!("        updating to {}; fscore: {} (DTE: {})", tentative_gScore, tentative_gScore + self.dist_to_end(neighbor), self.dist_to_end(neighbor));
