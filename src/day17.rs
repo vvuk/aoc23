@@ -62,22 +62,82 @@ impl Map {
         total_path
     }
 
-    fn can_go_straight(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> bool {
-        let fake_origin = Vec2 { x: -1, y: 0 };
-
+    fn can_go_straight(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> i32 {
+        let origin = Vec2 { x: 0, y: 0 };
+        if current == origin { return 3; }
         let prev1 = cameFrom[&current];
-        if prev1 == fake_origin { return true; }
+        if prev1 == origin { return 2; }
         let prev2 = cameFrom[&prev1];
-        if prev2 == fake_origin { return true; }
+        if prev2 == origin { return 1; }
+        let prev3 = cameFrom[&prev2];
+
+        if (current.x == prev1.x && prev1.x == prev2.x && prev2.x == prev3.x) ||
+           (current.y == prev1.y && prev1.y == prev2.y && prev2.y == prev3.y)
+        {
+            println!("   {:?} {:?} {:?} {:?} are all in a line", current, prev1, prev2, prev3);
+            return 0;
+        }
 
         if (current.x == prev1.x && prev1.x == prev2.x) ||
            (current.y == prev1.y && prev1.y == prev2.y)
         {
-            println!("   {:?} {:?} {:?} are all in a line", current, prev1, prev2);
-            return false;
+            return 1;
         }
 
-        true
+        if (current.x == prev1.x) ||
+           (current.y == prev1.y)
+        {
+            return 2;
+        }
+
+
+        return 3;
+    }
+
+    fn can_go_straight_2(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2, prev1: Vec2) -> i32 {
+        let origin = Vec2 { x: 0, y: 0 };
+        if current == origin { return 3; }
+        if prev1 == origin { return 2; }
+        let prev2 = cameFrom[&prev1];
+        if prev2 == origin { return 1; }
+        let prev3 = cameFrom[&prev2];
+        if prev3 == origin { return 1; }
+
+        if (current.x == prev1.x && prev1.x == prev2.x && prev2.x == prev3.x) ||
+           (current.y == prev1.y && prev1.y == prev2.y && prev2.y == prev3.y)
+        {
+            return 0;
+        }
+
+        if (current.x == prev1.x && prev1.x == prev2.x) ||
+           (current.y == prev1.y && prev1.y == prev2.y)
+        {
+            return 1;
+        }
+
+        if (current.x == prev1.x) ||
+           (current.y == prev1.y)
+        {
+            return 2;
+        }
+
+
+        return 3;
+    }
+
+    fn always_sorted(&self, a: &Vec2, b: &Vec2) -> std::cmp::Ordering {
+        let da = self.dist_to_end(*a);
+        let db = self.dist_to_end(*b);
+        if da != db { return a.cmp(&b); }
+
+        let wa = self.heat_at(*a);
+        let wb = self.heat_at(*b);
+        if wa != wb { return wa.cmp(&wb); }
+
+        if a.x != b.x { return a.x.cmp(&b.x); }
+        if a.y != b.y { return a.y.cmp(&b.y); }
+
+        panic!("They're really equal!");
     }
 
     fn a_star(&self, start: Vec2, goal: Vec2) -> Vec<Vec2> {
@@ -95,6 +155,13 @@ impl Map {
 
         while !openSet.is_empty() {
             let current = openSet.iter().min_by_key(|p| fScore[p]).unwrap().clone();
+            let cur_fscore = fScore[&current];
+            // all items in openSet that have the same cur_fscoe
+            let mut all_current = openSet.iter().filter(|p| fScore[p] == cur_fscore).map(|p| p.clone()).collect_vec();
+            // take the one with the shortest distance to the goal
+            all_current.sort_by(|a, b| self.always_sorted(a, b));
+            let current = all_current[0];
+
             println!("-- current: {:?} from {:?}", current, cameFrom[&current]);
             //println!("-- best path: {:?}", Map::reconstruct_path(&cameFrom, current));
 
@@ -112,15 +179,30 @@ impl Map {
                     continue;
                 }
 
-                if dir == STRAIGHT && !Map::can_go_straight(&cameFrom, current) {
+                let cgs = Map::can_go_straight(&cameFrom, current);
+                if dir == STRAIGHT && cgs == 0 {
                     println!("    can't go straight");
                     continue;
                 }
 
                 let tentative_gScore = gScore[&current] + self.heat_at(neighbor);
-                println!("    checking {} ({:?}) -> g {}", dir_name(dir), neighbor, tentative_gScore);
+                println!("    checking {} ({:?}) -> g {} cgs {}", dir_name(dir), neighbor, tentative_gScore, cgs);
 
-                if !gScore.contains_key(&neighbor) || tentative_gScore < gScore[&neighbor] {
+                let mut update = false;
+                if !gScore.contains_key(&neighbor) {
+                    update = true;
+                } else if tentative_gScore < gScore[&neighbor] {
+                    update = true;
+                } else if tentative_gScore == gScore[&neighbor] {
+                    println!("    same gscore as before");
+                    if dir == STRAIGHT &&
+                        Map::can_go_straight_2(&cameFrom, current, neighbor) > Map::can_go_straight(&cameFrom, neighbor) {
+                        update = true;
+                    }
+                    // if we're going straight, we want to prefer the one that's has more straight capacity?
+                }
+
+                if update {
                     println!("        updating to {}; fscore: {} (DTE: {})", tentative_gScore, tentative_gScore + self.dist_to_end(neighbor), self.dist_to_end(neighbor));
                     cameFrom.insert(neighbor, current);
                     gScore.insert(neighbor, tentative_gScore);
@@ -205,6 +287,6 @@ fn main() {
     println!("Result: {}", r);
     assert_eq!(102, r);
 
-    //let (r, d) = day17_inner("inputs/day17.txt");
-    //println!("Result: {}", r);
+    let (r, d) = day17_inner("inputs/day17.txt");
+    println!("Result: {}", r);
 }
