@@ -1,5 +1,6 @@
 #![allow(unused_imports, unused_variables, dead_code, unused_parens, non_snake_case)]
 use std::{cmp::{min,max}, collections::HashMap, collections::HashSet, str::FromStr, ops::BitAnd};
+use std::collections::BinaryHeap;
 use itertools::Itertools;
 use regex::Regex;
 use std::fmt::Debug;
@@ -40,6 +41,14 @@ fn dir_name(dir: usize) -> &'static str {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Ord, PartialOrd, Eq)]
+struct Edge {
+    target: Vec2,
+    dir_to_get_here: Direction,
+    same_dir_count: i32,
+    weight: i64,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 struct Map {
     map: Vec<Vec<i64>>,
@@ -47,6 +56,56 @@ struct Map {
 }
 
 impl Map {
+    fn dijkstra(&self, start: Vec2) -> HashMap<Vec2, i64> {
+        let grid = &self.map;
+        let rows = grid.len() as i64;
+        let cols = grid[0].len() as i64;
+    
+        let mut distances: HashMap<Vec2, i64> = HashMap::new();
+        let mut heap: BinaryHeap<Edge> = BinaryHeap::new();
+    
+        distances.insert(start, self.heat_at(start));
+        heap.push(Edge { target: start, dir_to_get_here: LEFT, same_dir_count: 0, weight: self.heat_at(start) });
+    
+        while let Some(Edge { target, dir_to_get_here, same_dir_count, weight }) = heap.pop() {
+            if let Some(current_distance) = distances.get(&target) {
+                if weight > *current_distance {
+                    continue;
+                }
+            }
+
+            let mut neighbors: [(i64, i64); 4] = [(0, 0); 4];
+            let mut ncout = 0;
+
+            let straight = self.
+            if target.x
+
+            let neighbors = [
+                (target.x, target.y.wrapping_sub(1)),
+                (target.x, target.y + 1),
+                (target.x.wrapping_sub(1), target.y),
+                (target.x + 1, target.y),
+            ];
+    
+            for (nx, ny) in neighbors.iter() {
+                if *nx >= 0 && *nx < rows && *ny >= 0 && *ny < cols {
+                    let neighbor = Vec2 { x: *nx, y: *ny };
+                    let new_distance = distances[&target] + self.heat_at(neighbor);
+    
+                    if !distances.contains_key(&neighbor) || new_distance < distances[&neighbor] {
+                        distances.insert(neighbor, new_distance);
+                        heap.push(Edge {
+                            target: neighbor,
+                            weight: new_distance,
+                        });
+                    }
+                }
+            }
+        }
+    
+        distances
+    }
+
     fn reconstruct_path(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> Vec<Vec2> {
         let mut total_path = vec![current];
         let mut current = current;
@@ -62,36 +121,26 @@ impl Map {
         total_path
     }
 
-    fn can_go_straight(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> i32 {
+    fn can_go_straight(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2) -> bool {
         let origin = Vec2 { x: 0, y: 0 };
-        if current == origin { return 3; }
-        let prev1 = cameFrom[&current];
-        if prev1 == origin { return 2; }
-        let prev2 = cameFrom[&prev1];
-        if prev2 == origin { return 1; }
-        let prev3 = cameFrom[&prev2];
 
-        if (current.x == prev1.x && prev1.x == prev2.x && prev2.x == prev3.x) ||
-           (current.y == prev1.y && prev1.y == prev2.y && prev2.y == prev3.y)
-        {
-            println!("   {:?} {:?} {:?} {:?} are all in a line", current, prev1, prev2, prev3);
-            return 0;
+        let mut item = current;
+        let mut xsame = 0;
+        let mut ysame = 0;
+
+        for i in 0..4 {
+            let prev = cameFrom[&item];
+            if prev == origin { return true; }
+            if item.x == prev.x { xsame += 1; }
+            if item.y == prev.y { ysame += 1; }
+            item = prev;
         }
 
-        if (current.x == prev1.x && prev1.x == prev2.x) ||
-           (current.y == prev1.y && prev1.y == prev2.y)
-        {
-            return 1;
+        if xsame == 3 || ysame == 3 {
+            return false;
         }
 
-        if (current.x == prev1.x) ||
-           (current.y == prev1.y)
-        {
-            return 2;
-        }
-
-
-        return 3;
+        true
     }
 
     fn can_go_straight_2(cameFrom: &HashMap<Vec2, Vec2>, current: Vec2, prev1: Vec2) -> i32 {
@@ -180,7 +229,7 @@ impl Map {
                 }
 
                 let cgs = Map::can_go_straight(&cameFrom, current);
-                if dir == STRAIGHT && cgs == 0 {
+                if dir == STRAIGHT && !cgs {
                     println!("    can't go straight");
                     continue;
                 }
@@ -195,11 +244,6 @@ impl Map {
                     update = true;
                 } else if tentative_gScore == gScore[&neighbor] {
                     println!("    same gscore as before");
-                    if dir == STRAIGHT &&
-                        Map::can_go_straight_2(&cameFrom, current, neighbor) > Map::can_go_straight(&cameFrom, neighbor) {
-                        update = true;
-                    }
-                    // if we're going straight, we want to prefer the one that's has more straight capacity?
                 }
 
                 if update {
@@ -267,8 +311,14 @@ fn day17_inner(input_fname: &str) -> (i64, Vec<usize>) {
     let map = Map { map, fin: target };
 
     let start = Vec2 { x: 0, y: 0 };
-    let apath = map.a_star(start, map.fin);
+    //let apath = map.bfs(start, map.fin);
+    let foo = map.dijkstra(start);
+    println!("Dijkstra: {:?}", foo);
+
+    return (0, vec![]);
+
     println!("\n\n");
+    /*
     println!("PATH: {:?}", apath);
 
     let mut cmap: Vec<Vec<char>> = vec![vec!['.'; map.map[0].len()]; map.map.len()];
@@ -279,7 +329,8 @@ fn day17_inner(input_fname: &str) -> (i64, Vec<usize>) {
     }
 
     print_map(&cmap);
-    (result, vec![])
+    */
+    //(result, vec![])
 }
 
 fn main() {
