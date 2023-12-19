@@ -180,61 +180,27 @@ fn day19_inner(input_fname: &str) -> (i64, Vec<i64>) {
     //for path in &accept_paths { println!("ACCEPT PATH: {:?}", path); }
     println!("ACCEPT PATHS: {}", accept_paths.len());
     for path in &accept_paths {
-        let mut vmin = vec![None, None, None, None];
-        let mut vmax = vec![None, None, None, None];
+        let mut ivals = vec![Ival::new(); 4];
+        println!("PATH: {:?}", path);
 
         for step_enc in path {
             let step = &rules[step_enc.0].steps[step_enc.1];
             match &step.cond {
                 Condition::None => {}
-                Condition::CheckGreater((Some(x),None,None,None)) => {
-                    // the condition is that the value has to be bigger than x. So there's a minimum.
-                    if let Some(v) = vmin[0] { vmin[0] = Some(max(v, *x)); } else { vmin[0] = Some(*x); }
-                },
-                Condition::CheckGreater((None,Some(m),None,None)) => {
-                    if let Some(v) = vmin[1] { vmin[1] = Some(max(v, *m)); } else { vmin[1] = Some(*m); }
-                },
-                Condition::CheckGreater((None,None,Some(a),None)) => {
-                    if let Some(v) = vmin[2] { vmin[2] = Some(max(v, *a)); } else { vmin[2] = Some(*a); }
-                },
-                Condition::CheckGreater((None,None,None,Some(s))) => {
-                    if let Some(v) = vmin[3] { vmin[3] = Some(max(v, *s)); } else { vmin[3] = Some(*s); }
-                },
-                Condition::CheckLess((Some(x),None,None,None)) => {
-                    // the actual value has to be less than x, so there's a maximum
-                    if let Some(v) = vmax[0] { vmax[0] = Some(min(v, *x)); } else { vmax[0] = Some(*x); }
-                },
-                Condition::CheckLess((None,Some(m),None,None)) => {
-                    if let Some(v) = vmax[1] { vmax[1] = Some(min(v, *m)); } else { vmax[1] = Some(*m); }
-                },
-                Condition::CheckLess((None,None,Some(a),None)) => {
-                    if let Some(v) = vmax[2] { vmax[2] = Some(min(v, *a)); } else { vmax[2] = Some(*a); }
-                },
-                Condition::CheckLess((None,None,None,Some(s))) => {
-                    if let Some(v) = vmax[3] { vmax[3] = Some(min(v, *s)); } else { vmax[3] = Some(*s); }
-                },
+                Condition::CheckGreater((Some(x),None,None,None)) => { ivals[0].exclude(1, *x); },
+                Condition::CheckGreater((None,Some(m),None,None)) => { ivals[1].exclude(1, *m); },
+                Condition::CheckGreater((None,None,Some(a),None)) => { ivals[2].exclude(1, *a); },
+                Condition::CheckGreater((None,None,None,Some(s))) => { ivals[3].exclude(1, *s); },
+                Condition::CheckLess((Some(x),None,None,None)) => { ivals[0].exclude(*x, 4000); },
+                Condition::CheckLess((None,Some(m),None,None)) => { ivals[1].exclude(*m, 4000); },
+                Condition::CheckLess((None,None,Some(a),None)) => { ivals[2].exclude(*a, 4000); },
+                Condition::CheckLess((None,None,None,Some(s))) => { ivals[3].exclude(*s, 4000); },
                 _ => panic!()
             }
         }
 
         for i in 0..4 {
-            match (vmin[i], vmax[i]) {
-                (Some(vmin), Some(vmax)) => {
-                    if vmin > vmax {
-                        intervals[i].exclude(vmax, vmin);
-                    } else {
-                        intervals[i].include(vmin, vmax);
-                    }
-                },
-                (Some(vmin), None) => {
-                    intervals[i].include(vmin+1, 4000);
-                },
-                (None, Some(vmin)) => {
-                    intervals[i].include(1, vmin-1);
-
-                },
-                _ => {}
-            }
+            println!("{}: {:?}", ["x","m","a","s"][i], ivals[i]);
         }
     }
 
