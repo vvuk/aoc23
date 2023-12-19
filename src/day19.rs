@@ -1,8 +1,11 @@
 #![allow(unused_imports, unused_variables, dead_code, unused_parens, non_snake_case)]
 use std::{cmp::{min,max}, collections::HashMap, collections::HashSet, str::FromStr, ops::BitAnd};
+use std::collections::VecDeque;
 use itertools::Itertools;
 use regex::Regex;
 use std::fmt::Debug;
+use intervals_general::bound_pair::BoundPair;
+use intervals_general::interval::Interval;
 
 mod helpers;
 use helpers::*;
@@ -72,7 +75,6 @@ fn day19_inner(input_fname: &str) -> (i64, Vec<i64>) {
             let steps = caps.name("steps").unwrap().as_str().split(",")
                 .map(|s| {
                     let s = s.trim();
-                    println!("STEP: {}", s);
                     match s {
                         "R" => RuleStep { cond: Condition::None, action: RuleAction::Reject },
                         "A" => RuleStep { cond: Condition::None, action: RuleAction::Accept },
@@ -132,50 +134,175 @@ fn day19_inner(input_fname: &str) -> (i64, Vec<i64>) {
         }
     }
 
-    let mut accepted: Vec<Part> = vec![];
-    for part in &parts {
-        let mut rule_index = rule_map["in"];
-        'RULES: loop {
-            let rule = &rules[rule_index];
+    let mut accept_paths = vec![];
 
-            for step in &rule.steps {
-                let pass = match step.cond {
-                    Condition::CheckLess((Some(x), None, None, None)) => part.x < x,
-                    Condition::CheckLess((None, Some(m), None, None)) => part.m < m,
-                    Condition::CheckLess((None, None, Some(a), None)) => part.a < a,
-                    Condition::CheckLess((None, None, None, Some(s))) => part.s < s,
-                    Condition::CheckGreater((Some(x), None, None, None)) => part.x > x,
-                    Condition::CheckGreater((None, Some(m), None, None)) => part.m > m,
-                    Condition::CheckGreater((None, None, Some(a), None)) => part.a > a,
-                    Condition::CheckGreater((None, None, None, Some(s))) => part.s > s,
-                    Condition::None => true,
-                    _ => panic!(),
-                };
+    // the path is a set of (rule index, step index) pairs that lead to acceptance
+    let mut cur_path = vec![];
+    cur_path.push((rule_map["in"], 0 as usize));
 
-                if !pass {
-                    continue;
-                }
+    let mut work = VecDeque::new();
+    work.push_back(cur_path);
 
-                if let RuleAction::Jump(name) = &step.action {
-                    rule_index = rule_map[name];
-                    continue 'RULES;
-                }
+    while let Some(item) = work.pop_front() {
+        let last = item.last().unwrap();
+        let last_rule = &rules[last.0];
+        let last_step = &last_rule.steps[last.1];
 
-                if step.action == RuleAction::Accept {
-                    accepted.push(part.clone());
-                }
+        // if there was a condition, then put a work item back
+        // for the next thing, if the condition fails
+        if last_step.cond != Condition::None {
+            let mut new_path = item.clone();
+            new_path.last_mut().unwrap().1 += 1;
+            work.push_back(new_path);
+        }
 
-                break 'RULES;
+        // now here, the condition passes. what's the action?
+        match &last_step.action {
+            RuleAction::Accept => {
+                // this is a valid path to accepting a part
+                accept_paths.push(item);
+                continue;
+            }
+            RuleAction::Reject => {
+                continue;
+            }
+            RuleAction::Jump(dest_name) => {
+                let dest_idx = rule_map[dest_name];
+                let mut new_path = item.clone();
+                new_path.push((dest_idx, 0));
+                work.push_back(new_path);
             }
         }
     }
 
-    let mut sum: i64 = 0;
-    for acc in &accepted {
-        sum += acc.x + acc.m + acc.a + acc.s;
+    let mut intervals = vec![Ival::new(); 4];
+
+    //for path in &accept_paths { println!("ACCEPT PATH: {:?}", path); }
+    println!("ACCEPT PATHS: {}", accept_paths.len());
+    for path in &accept_paths {
+        let mut vmin = vec![None, None, None, None];
+        let mut vmax = vec![None, None, None, None];
+
+        for step_enc in path {
+            let step = &rules[step_enc.0].steps[step_enc.1];
+            match &step.cond {
+                Condition::None => {}
+                Condition::CheckGreater((Some(x),None,None,None)) => {
+                    // the condition is that the value has to be bigger than x. So there's a minimum.
+                    if let Some(v) = vmin[0] { vmin[0] = Some(max(v, *x)); } else { vmin[0] = Some(*x); }
+                },
+                Condition::CheckGreater((None,Some(m),None,None)) => {
+                    if let Some(v) = vmin[1] { vmin[1] = Some(max(v, *m)); } else { vmin[1] = Some(*m); }
+                },
+                Condition::CheckGreater((None,None,Some(a),None)) => {
+                    if let Some(v) = vmin[2] { vmin[2] = Some(max(v, *a)); } else { vmin[2] = Some(*a); }
+                },
+                Condition::CheckGreater((None,None,None,Some(s))) => {
+                    if let Some(v) = vmin[3] { vmin[3] = Some(max(v, *s)); } else { vmin[3] = Some(*s); }
+                },
+                Condition::CheckLess((Some(x),None,None,None)) => {
+                    // the actual value has to be less than x, so there's a maximum
+                    if let Some(v) = vmax[0] { vmax[0] = Some(min(v, *x)); } else { vmax[0] = Some(*x); }
+                },
+                Condition::CheckLess((None,Some(m),None,None)) => {
+                    if let Some(v) = vmax[1] { vmax[1] = Some(min(v, *m)); } else { vmax[1] = Some(*m); }
+                },
+                Condition::CheckLess((None,None,Some(a),None)) => {
+                    if let Some(v) = vmax[2] { vmax[2] = Some(min(v, *a)); } else { vmax[2] = Some(*a); }
+                },
+                Condition::CheckLess((None,None,None,Some(s))) => {
+                    if let Some(v) = vmax[3] { vmax[3] = Some(min(v, *s)); } else { vmax[3] = Some(*s); }
+                },
+                _ => panic!()
+            }
+        }
+
+        for i in 0..4 {
+            match (vmin[i], vmax[i]) {
+                (Some(vmin), Some(vmax)) => {
+                    if vmin > vmax {
+                        intervals[i].exclude(vmax, vmin);
+                    } else {
+                        intervals[i].include(vmin, vmax);
+                    }
+                },
+                (Some(vmin), None) => {
+                    intervals[i].include(vmin+1, 4000);
+                },
+                (None, Some(vmin)) => {
+                    intervals[i].include(1, vmin-1);
+
+                },
+                _ => {}
+            }
+        }
     }
 
-    (sum, vec![])
+    let mut res = 1;
+    for i in 0..4 {
+        println!("{:?}", intervals[i]);
+        res *= intervals[i].count();
+    }
+
+    (res, vec![])
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Ival {
+    chunks: Vec<(i64, i64)>,
+}
+
+impl Ival {
+    fn new() -> Ival {
+        Ival { chunks: vec![(1,4000)] }
+    }
+
+    fn include(&mut self, vmin: i64, vmax: i64) {
+        let mut new_chunks = vec![];
+        let mut found = false;
+        for (a, b) in &self.chunks {
+            if vmin > *b || vmax < *a {
+                new_chunks.push((*a, *b));
+            } else {
+                new_chunks.push((min(*a, vmin), max(*b, vmax)));
+                found = true;
+            }
+        }
+
+        if !found {
+            new_chunks.push((vmin, vmax));
+        }
+
+        self.chunks = new_chunks;
+    }
+
+    fn exclude(&mut self, vmin: i64, vmax: i64) {
+        let mut new_chunks = vec![];
+        for (a, b) in &self.chunks {
+            if vmin > *b || vmax < *a {
+                new_chunks.push((*a, *b));
+            } else if vmin <= *a && vmax >= *b {
+                // the whole chunk is excluded
+            } else if vmin <= *a && vmax < *b {
+                new_chunks.push((vmax+1, *b));
+            } else if vmin > *a && vmax >= *b {
+                new_chunks.push((*a, vmin-1));
+            } else {
+                new_chunks.push((*a, vmin-1));
+                new_chunks.push((vmax+1, *b));
+            }
+        }
+
+        self.chunks = new_chunks;
+    }
+
+    fn count(&self) -> i64 {
+        let mut res = 0;
+        for (a, b) in &self.chunks {
+            res += b - a + 1;
+        }
+        res
+    }
 }
 
 fn main() {
@@ -183,6 +310,6 @@ fn main() {
     println!("Result: {}", r);
 
     println!("===== Real =====");
-    let (r, d) = day19_inner("inputs/day19.txt");
-    println!("Result: {}", r);
+    //let (r, d) = day19_inner("inputs/day19.txt");
+    //println!("Result: {}", r);
 }
