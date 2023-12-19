@@ -4,11 +4,15 @@ use std::collections::VecDeque;
 use itertools::Itertools;
 use regex::Regex;
 use std::fmt::Debug;
-use intervals_general::bound_pair::BoundPair;
-use intervals_general::interval::Interval;
+use discrete_range_map::{DiscreteRangeMap, DiscreteFinite};
+use discrete_range_map::interval::InclusiveInterval;
 
 mod helpers;
 use helpers::*;
+
+pub fn ii(x1: i64, x2: i64) -> InclusiveInterval<i64> {
+	InclusiveInterval { start: x1, end: x2, }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Part {
@@ -50,7 +54,16 @@ struct Rule {
     steps: Vec<RuleStep>,
 }
 
-fn day19_inner(input_fname: &str) -> (i64, Vec<i64>) {
+fn optadd(vals: (Option<i64>, Option<i64>, Option<i64>, Option<i64>), add: i64) -> (Option<i64>, Option<i64>, Option<i64>, Option<i64>) {
+    let mut res = (None, None, None, None);
+    if let Some(x) = vals.0 { res.0 = Some(x + add); }
+    if let Some(x) = vals.1 { res.1 = Some(x + add); }
+    if let Some(x) = vals.2 { res.2 = Some(x + add); }
+    if let Some(x) = vals.3 { res.3 = Some(x + add); }
+    res
+}
+
+fn day19_inner(input_fname: &str) -> u128 {
     let data = std::fs::read_to_string(input_fname).unwrap();
 
     // rnm{s>2431:R,a<563:A,x<1798:A,R}
@@ -66,7 +79,7 @@ fn day19_inner(input_fname: &str) -> (i64, Vec<i64>) {
     for line in data.lines() {
         if line.trim().is_empty() {
             second = true;
-            continue;
+            break;
         }
 
         if !second {
@@ -175,42 +188,61 @@ fn day19_inner(input_fname: &str) -> (i64, Vec<i64>) {
         }
     }
 
-    let mut intervals = vec![Ival::new(); 4];
-
+    let mut res: u128 = 1;
     //for path in &accept_paths { println!("ACCEPT PATH: {:?}", path); }
+
     println!("ACCEPT PATHS: {}", accept_paths.len());
     for path in &accept_paths {
-        let mut ivals = vec![Ival::new(); 4];
+        let mut ivals = vec![DiscreteRangeMap::new(); 4];
+        for i in 0..4 { ivals[i].insert_strict(ii(1, 4000), true).ok(); }
+
         println!("PATH: {:?}", path);
 
         for step_enc in path {
-            let step = &rules[step_enc.0].steps[step_enc.1];
-            match &step.cond {
-                Condition::None => {}
-                Condition::CheckGreater((Some(x),None,None,None)) => { ivals[0].exclude(1, *x); },
-                Condition::CheckGreater((None,Some(m),None,None)) => { ivals[1].exclude(1, *m); },
-                Condition::CheckGreater((None,None,Some(a),None)) => { ivals[2].exclude(1, *a); },
-                Condition::CheckGreater((None,None,None,Some(s))) => { ivals[3].exclude(1, *s); },
-                Condition::CheckLess((Some(x),None,None,None)) => { ivals[0].exclude(*x, 4000); },
-                Condition::CheckLess((None,Some(m),None,None)) => { ivals[1].exclude(*m, 4000); },
-                Condition::CheckLess((None,None,Some(a),None)) => { ivals[2].exclude(*a, 4000); },
-                Condition::CheckLess((None,None,None,Some(s))) => { ivals[3].exclude(*s, 4000); },
-                _ => panic!()
+            let rule = &rules[step_enc.0];
+            for stepi in 0..step_enc.1+1 {
+                let step = &rule.steps[stepi];
+                let mut cond = step.cond;
+                if stepi != step_enc.1 {
+                    // flip if not taken
+                    cond = match cond {
+                        Condition::CheckGreater(k) => Condition::CheckLess(optadd(k, 1)),
+                        Condition::CheckLess(k) => Condition::CheckGreater(optadd(k, -1)),
+                        Condition::None => panic!(),
+                        _ => panic!(),
+                    };
+                }
+
+                println!("  STEP: {:?} => {:?}", step.cond, cond);
+                match &cond {
+                    Condition::None => {}
+                    Condition::CheckGreater((Some(x),None,None,None)) => { ivals[0].cut(ii(1, *x)).collect_vec(); },
+                    Condition::CheckGreater((None,Some(m),None,None)) => { ivals[1].cut(ii(1, *m)).collect_vec(); },
+                    Condition::CheckGreater((None,None,Some(a),None)) => { ivals[2].cut(ii(1, *a)).collect_vec(); },
+                    Condition::CheckGreater((None,None,None,Some(s))) => { ivals[3].cut(ii(1, *s)).collect_vec(); },
+                    Condition::CheckLess((Some(x),None,None,None)) => { ivals[0].cut(ii(*x, 4001)).collect_vec(); }, 
+                    Condition::CheckLess((None,Some(m),None,None)) => { ivals[1].cut(ii(*m, 4001)).collect_vec(); }, 
+                    Condition::CheckLess((None,None,Some(a),None)) => { ivals[2].cut(ii(*a, 4001)).collect_vec(); }, 
+                    Condition::CheckLess((None,None,None,Some(s))) => { ivals[3].cut(ii(*s, 4001)).collect_vec(); }, 
+                    _ => panic!()
+                }
             }
         }
 
+        let mut ires: u128 = 1;
         for i in 0..4 {
-            println!("{}: {:?}", ["x","m","a","s"][i], ivals[i]);
+            let mut v = 0;
+            for iv in ivals[i].iter() {
+                v += (iv.0.end - iv.0.start) + 1;
+                println!("{}:  {:?} -> {}", ["x","m","a","s"][i], iv.0, v);
+            }
+            ires *= v as u128;
         }
+
+        res += ires;
     }
 
-    let mut res = 1;
-    for i in 0..4 {
-        println!("{:?}", intervals[i]);
-        res *= intervals[i].count();
-    }
-
-    (res, vec![])
+    res
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -272,10 +304,14 @@ impl Ival {
 }
 
 fn main() {
-    let (r, d) = day19_inner("inputs/day19-sample.txt");
+    let r = day19_inner("inputs/day19-sample-2.txt");
+    println!("Result: {} max", 256000000000000 as u128);
     println!("Result: {}", r);
 
+    let r = day19_inner("inputs/day19-sample.txt");
+    assert_eq!(167409079868000, r-1);
+
     println!("===== Real =====");
-    //let (r, d) = day19_inner("inputs/day19.txt");
-    //println!("Result: {}", r);
+    let r = day19_inner("inputs/day19.txt");
+    println!("Result: {}", r-1);
 }
