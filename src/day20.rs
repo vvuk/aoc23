@@ -49,7 +49,6 @@ impl Module {
     }
 
     fn perform(&mut self, value: bool, source: RefModule) -> Option<bool> {
-        println!("{} {:?}", self.name, self.kind);
         if self.kind == ModuleKind::Debug {
             debug_println!("Debug[{}]: {}", self.name, value);
             return Some(value);
@@ -166,11 +165,22 @@ fn day20_inner(input_fname: &str) -> i64 {
     let mut high_count: i64 = 0;
     let mut pulse_queue = VecDeque::new();
 
-    for i in 0..1000 {
+    let mut i: i64 = 0;
+    loop {
         pulse_queue.push_front((broadcaster.clone(), broadcaster.clone(), false));
-        debug_println!("==== button press =====");
+        i += 1;
+        //println!("==== button press =====");
+
+        if i % 1_000_000 == 0 {
+            println!("... {}", i);
+        }
 
         while let Some(pulse) = pulse_queue.pop_front() {
+            if (pulse.1.as_ptr() == outmod.as_ptr() && pulse.2 == false) {
+                debug_println!("Output: {}", i);
+                panic!("Output: {}", i);
+            }
+
             debug_println!("Pulse: {} -{}-> {}     ({:?} -> {:?})", pulse.0.as_ref().borrow().name, if pulse.2 { "high" } else { "low" },
                 pulse.1.as_ref().borrow().name, pulse.0.as_ref().borrow().kind, pulse.1.as_ref().borrow().kind);
             if pulse.2 { high_count += 1; } else { low_count += 1; }
@@ -178,13 +188,13 @@ fn day20_inner(input_fname: &str) -> i64 {
         }
     }
 
-    println!("Low: {}, High: {}", low_count, high_count);
-    low_count * high_count
+    //println!("Low: {}, High: {}", low_count, high_count);
+    //low_count * high_count
 }
 
 fn main() {
-    let r = day20_inner("inputs/day20-sample-2.txt");
-    println!("Result: {}", r);
+    //let r = day20_inner("inputs/day20-sample-2.txt");
+    //println!("Result: {}", r);
 
     println!("===== Real =====");
     let r = day20_inner("inputs/day20.txt");
