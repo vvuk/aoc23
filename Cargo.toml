@@ -11,6 +11,7 @@ regex = "1.10.2"
 debug_print = "1.0.0"
 typed-arena = "2.0.2"
 bumpalo = "3.14.0"
+deque = "0.3.0"
 
 [profile.release]
 debug = 1
@@ -94,3 +95,7 @@ path = "src/day19.rs"
 [[bin]]
 name = "day20"
 path = "src/day20.rs"
+
+[[bin]]
+name = "day21"
+path = "src/day21.rs"

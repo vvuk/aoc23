@@ -23,7 +23,7 @@ enum ModuleKind {
     Conjunction,
 }
 
-type RefModule = Rc<RefCell<Module>>;
+type RefModule = *mut Module;
 type AddressedPulse = (RefModule, RefModule, bool); // src, dst, value
 
 struct Module {
@@ -65,7 +65,7 @@ impl Module {
         }
 
         if self.kind == ModuleKind::Conjunction {
-            let input_index = self.inputs.iter().position(|x| x.as_ptr() == source.as_ptr()).unwrap();
+            let input_index = self.inputs.iter().position(|x| *x == source).unwrap();
             self.conj_storage[input_index] = value;
             for val in &self.conj_storage {
                 if !val {
@@ -80,12 +80,14 @@ impl Module {
         panic!()
     }
 
-    fn pulse(module: RefModule, value: bool, source: RefModule, queue: &mut VecDeque<AddressedPulse>) {
-        let mut mm = module.as_ref().borrow_mut();
-        if let Some(new_v) = mm.perform(value, source) {
-            for output in mm.outputs.iter() {
-                //println!("Pushing {} -> {} ({:?})", new_v, output.as_ref().borrow().name, output.as_ref().borrow().kind);
-                queue.push_back((module.clone(), output.clone(), new_v));
+    fn pulse(module: RefModule, value: bool, source: RefModule, queue: &mut Vec<AddressedPulse>) {
+        unsafe {
+            let mm = module.as_mut().unwrap();
+            if let Some(new_v) = mm.perform(value, source) {
+                for output in mm.outputs.iter() {
+                    //println!("Pushing {} -> {} ({:?})", new_v, output.as_ref().borrow().name, output.as_ref().borrow().kind);
+                    queue.push((module.clone(), output.clone(), new_v));
+                }
             }
         }
     }
@@ -104,14 +106,16 @@ fn day20_inner(input_fname: &str) -> i64 {
     let mut modoutputs = vec![];
     let mut namemap = HashMap::new();
 
+    let bumper = Bump::new();
+
     // broadcaster -> a, b, c
 // %a -> b
 // %b -> c
 // %c -> inv
 // &inv -> a
 
-    let outmod = Rc::new(RefCell::new(Module::new("OUTPUT", ModuleKind::Debug)));
-    modules.push(outmod.clone());
+    let outmod = bumper.alloc(Module::new("OUTPUT", ModuleKind::Debug)) as RefModule;
+    modules.push(outmod);
     namemap.insert("rx".to_string(), 0);
     modoutputs.push(vec![]);
 
@@ -130,13 +134,13 @@ fn day20_inner(input_fname: &str) -> i64 {
             _ => panic!(),
         };
 
-        let module = Rc::new(RefCell::new(Module::new(name, kind)));
+        let module = bumper.alloc(Module::new(name, kind)) as RefModule;
         let module_index = if let Some(index) = namemap.get(name) {
             *index
         } else {
             let index = modules.len();
             namemap.insert(name.to_string(), index);
-            modules.push(Rc::new(RefCell::new(Module::new("PLACEHOLDER", ModuleKind::Debug))));
+            modules.push(bumper.alloc(Module::new("PLACEHOLDER", ModuleKind::Debug)) as RefModule);
             modoutputs.push(vec![]);
             index
         };
@@ -148,43 +152,54 @@ fn day20_inner(input_fname: &str) -> i64 {
     // fill in the outputs with actual links
     for i in 0..modules.len() {
         for &outname in modoutputs[i].iter() {
-            let mut mm = modules[i].as_ref().borrow_mut();
-            if let Some(outindex) = namemap.get(outname) {
-                mm.outputs.push(modules[*outindex].clone());
-                modules[*outindex].as_ref().borrow_mut().push_input(modules[i].clone());
-            } else {
-                println!("Using dummy output for {}", outname);
-                mm.outputs.push(outmod.clone());
+            unsafe {
+                let mm = modules[i].as_mut().unwrap();
+                if let Some(outindex) = namemap.get(outname) {
+                    mm.outputs.push(modules[*outindex]);
+                    modules[*outindex].as_mut().unwrap().push_input(modules[i].clone());
+                } else {
+                    println!("Using dummy output for {}", outname);
+                    mm.outputs.push(outmod.clone());
+                }
             }
         }
     }
 
-    let broadcaster = modules[namemap["broadcaster"]].clone();
+    let broadcaster = modules[namemap["broadcaster"]];
 
     let mut low_count: i64 = 0;
     let mut high_count: i64 = 0;
-    let mut pulse_queue = VecDeque::new();
+    //let mut pulse_queue = VecDeque::with_capacity(1000);
+    let mut pulse_queue = vec![];
 
     let mut i: i64 = 0;
     loop {
-        pulse_queue.push_front((broadcaster.clone(), broadcaster.clone(), false));
+        let mut q_index = 0;
+        pulse_queue.clear();
+        pulse_queue.push((broadcaster, broadcaster, false));
         i += 1;
         //println!("==== button press =====");
 
         if i % 1_000_000 == 0 {
-            println!("... {}", i);
+            println!("... {} (deque {})", i, pulse_queue.len());
         }
 
-        while let Some(pulse) = pulse_queue.pop_front() {
-            if (pulse.1.as_ptr() == outmod.as_ptr() && pulse.2 == false) {
+        while q_index < pulse_queue.len() {
+            let pulse = pulse_queue[q_index];
+            if pulse.1 == outmod && pulse.2 == false {
                 debug_println!("Output: {}", i);
                 panic!("Output: {}", i);
             }
 
-            debug_println!("Pulse: {} -{}-> {}     ({:?} -> {:?})", pulse.0.as_ref().borrow().name, if pulse.2 { "high" } else { "low" },
-                pulse.1.as_ref().borrow().name, pulse.0.as_ref().borrow().kind, pulse.1.as_ref().borrow().kind);
+            unsafe {
+                debug_println!("Pulse: {} -{}-> {}", pulse.0.as_ref().unwrap().name, if pulse.2 { "high" } else { "low" },
+                    pulse.1.as_ref().unwrap().name);
+            }
             if pulse.2 { high_count += 1; } else { low_count += 1; }
             Module::pulse(pulse.1, pulse.2, pulse.0, &mut pulse_queue);
+
+            q_index += 1;
+            //println!("pulse_queue.len() {} q_index {}\n", pulse_queue.len(), q_index);
         }
     }
 
