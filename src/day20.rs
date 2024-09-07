@@ -100,6 +100,28 @@ impl Module {
     }
 }
 
+fn modules_state(modules: &Vec<RefModule>) -> String {
+    let mut result = String::new();
+    for module in modules.iter() {
+        unsafe {
+            let mm = module.as_ref().unwrap();
+            if mm.kind == ModuleKind::Debug {
+                continue;
+            }
+            //result.push_str(&format!("{}:", mm.name));
+            if mm.kind == ModuleKind::Broadcast {
+                result.push_str(">");
+            } else if mm.kind == ModuleKind::FlipFlop {
+                result.push_str(if mm.flip_storage { "+" } else { "_" });
+            } else if mm.kind == ModuleKind::Conjunction {
+                result.push_str(&mm.conj_storage.iter().map(|x| if *x { '*' } else { '.' }).collect::<String>());
+            }
+            //result.push_str(" ");
+        }
+    }
+    result
+}
+
 fn day20_inner(input_fname: &str) -> i64 {
     let data = std::fs::read_to_string(input_fname).unwrap();
     let mut modules = vec![];
@@ -167,6 +189,59 @@ fn day20_inner(input_fname: &str) -> i64 {
 
     let broadcaster = modules[namemap["broadcaster"]];
 
+    /*
+    let mut rx_input_queue = VecDeque::new();
+    let mut seen_q = HashSet::new();
+    rx_input_queue.push_back(outmod);
+    while let Some(module) = rx_input_queue.pop_front() {
+        if seen_q.contains(&module) {
+            continue;
+        }
+        seen_q.insert(module.clone());
+        let mm = unsafe { module.as_ref().unwrap() };
+        println!("rx_input_queue: {} <- {:?}", mm.name, mm.inputs.iter().map(|x| &unsafe { x.as_ref().unwrap() }.name).collect::<Vec<_>>());
+        for input in mm.inputs.iter() {
+            rx_input_queue.push_back(input.clone());
+        }
+    }
+
+    panic!("done");
+    */
+
+    let mut totals = vec![];
+
+    for &node_start in unsafe { broadcaster.as_ref().unwrap() }.outputs.iter() {
+        let mut node = node_start;
+        let mut num: i64 = 0;
+
+        for i in 0.. {
+            let node_outputs = unsafe { node.as_ref().unwrap() }.outputs.clone();
+            let flip_flops = node_outputs.iter()
+                .filter(|x| unsafe { x.as_ref().unwrap() }.kind == ModuleKind::FlipFlop)
+                .collect_vec();
+            match flip_flops.len() {
+                0 => {
+                    num += 1 << i;
+                    break;
+                },
+                1 => {
+                    if node_outputs.len() > 1 {
+                        num += 1 << i;
+                    }
+                    node = flip_flops[0].clone();
+                },
+                _ => panic!(),
+            }
+        }
+
+        totals.push(num);
+    }
+
+    println!("Totals: {:?}", totals);
+    return totals.iter().product::<i64>();
+
+
+
     let mut low_count: i64 = 0;
     let mut high_count: i64 = 0;
     //let mut pulse_queue = VecDeque::with_capacity(1000);
@@ -178,7 +253,7 @@ fn day20_inner(input_fname: &str) -> i64 {
         pulse_queue.clear();
         pulse_queue.push((broadcaster, broadcaster, false));
         i += 1;
-        //println!("==== button press =====");
+        println!("{}: {}", i, modules_state(&modules));
 
         if i % 1_000_000 == 0 {
             println!("... {} (deque {})", i, pulse_queue.len());

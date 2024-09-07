@@ -24,7 +24,7 @@ enum Direction {
 }
 
 struct Map {
-    map: Vec<Vec<char>>,
+    map: Vec<Vec<u8>>,
     start: (usize, usize),
     width: usize,
     height: usize,
@@ -50,56 +50,66 @@ impl Map {
         let width = map[0].len();
         let height = map.len();
 
+        // replace the map with the number of reachable plots from each plot
+        let mut nmap = vec![vec![0; width]; height];
+        for j in 0..height {
+            for i in 0..width {
+                if map[j][i] == '#' {
+                    nmap[j][i] = 0;
+                    continue;
+                }
+
+                let mut cnt = 0;
+                [Direction::North, Direction::East, Direction::South, Direction::West].iter().for_each(|dir| {
+                    let nc = Map::go_static((i, j), *dir, width, height);
+                    if map[nc.1][nc.0] != '#' {
+                        cnt += 1;
+                    }
+                });
+                nmap[j][i] = cnt;
+            }
+        }
+
         Self {
-            map,
+            map: nmap,
             start,
             width,
             height,
         }
     }
 
-    fn is_plot(&self, coord: (usize, usize)) -> bool {
-        let (x,y) = coord;
-        if x >= self.width || y >= self.height { return false; }
-        return self.map[y][x] != '#'
+    fn go(&self, coord: (usize, usize), dir: Direction) -> (usize, usize) {
+        Map::go_static(coord, dir, self.width, self.height)
     }
 
-    fn at(&self, coord: (usize, usize)) -> Option<char> {
+    fn go_static(coord: (usize, usize), dir: Direction, width: usize, height: usize) -> (usize, usize) {
         let (x,y) = coord;
-        if y >= self.map.len() {
-            return None;
-        }
-        let row = &self.map[y];
-        if x >= row.len() {
-            return None;
-        }
-        Some(row[x])
-    }
 
-    fn go(&self, coord: (usize, usize), dir: Direction) -> Option<(usize, usize)> {
-        let (x,y) = coord;
+        // map wraps around
         match dir {
-            Direction::North => { if y == 0 { None } else { Some((x,y-1)) } },
-            Direction::East => { if x == self.map[y].len()-1 { None } else { Some((x+1,y)) } },
-            Direction::South => { if y == self.map.len()-1 { None } else { Some((x,y+1)) } },
-            Direction::West => { if x == 0 { None } else { Some((x-1,y)) } },
+            Direction::North => { if y == 0 { return (x, height-1); } else { return (x, y-1); } },
+            Direction::East => { if x == width-1 { return (0, y); } else { return (x+1, y); } },
+            Direction::South => { if y == height-1 { return (x, 0); } else { return (x, y+1); } },
+            Direction::West => { if x == 0 { return (width-1, y); } else { return (x-1, y); } },
         }
     }
 }
 
-fn day21_inner(input_fname: &str, target: usize) -> i64 {
+fn day21_inner(input_fname: &str, target: usize) -> u128 {
     let data = std::fs::read_to_string(input_fname).unwrap();
     let map = Map::from_string(&data);
     let mut queue = HashSet::new();
     let mut seen = HashSet::new();
-    let mut results = HashSet::new();
+    let mut result: u128 = 0;
 
     let mut mmax = 0;
 
-    queue.insert((map.start, 0));
+    queue.insert((map.start, 0, 1 as u128));
     while !queue.is_empty() {
-        let (coord, dist) = queue.iter().next().unwrap().clone();
-        queue.remove(&(coord, dist));
+        let (coord, dist, cnt) = queue.iter().next().unwrap().clone();
+        let val_at = map.map[coord.1][coord.0];
+
+        queue.remove(&(coord, dist, cnt));
         seen.insert((coord, dist));
 
         if max(dist, mmax) != mmax {
@@ -108,31 +118,29 @@ fn day21_inner(input_fname: &str, target: usize) -> i64 {
         }
 
         if dist == target {
-            results.insert(coord);
+            result += cnt;
             continue;
         }
 
         [Direction::North, Direction::East, Direction::South, Direction::West].iter().for_each(|dir| {
-            if let Some(new_coord) = map.go(coord, *dir) {
-                if map.is_plot(new_coord) {
-                    let n = (new_coord, dist+1);
-                    if seen.contains(&n) {
-                        return;
-                    }
-                    queue.insert(n);
-                }
-            }
+            let new_coord = map.go(coord, *dir);
+            let new_coord_v = map.map[new_coord.1][new_coord.0];
+            if new_coord_v == 0 { return; }
+            println!("{} {}", cnt, new_coord_v);
+            let n = (new_coord, dist+1, cnt * new_coord_v as u128);
+            if seen.contains(&(new_coord, dist+1)) { return; }
+            queue.insert(n);
         });
     }
 
-    results.len() as i64
+    result
 }
 
 fn main() {
-    let r = day21_inner("inputs/day21-sample.txt", 6);
+    let r = day21_inner("inputs/day21-sample.txt", 1000);
     println!("Result: {}", r);
 
     println!("===== Real =====");
-    let r = day21_inner("inputs/day21.txt", 64);
-    println!("Result: {}", r);
+    //let r = day21_inner("inputs/day21.txt", 26501365);
+    //println!("Result: {}", r);
 }
